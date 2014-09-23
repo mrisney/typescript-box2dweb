@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props" Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.Default.props')" />
   <PropertyGroup>
@@ -19,21 +19,20 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="app.css" />
-    <Content Include="Box2dWeb-2.1.a.3.js" />
     <Content Include="index.html" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="app.ts" />
-    <TypeScriptCompile Include="box2dweb.d.ts" />
-    <TypeScriptCompile Include="createjs-lib.d.ts" />
-    <TypeScriptCompile Include="createjs.d.ts" />
-    <TypeScriptCompile Include="curve.ts" />
-    <TypeScriptCompile Include="easeljs.d.ts" />
-    <TypeScriptCompile Include="kinetic.d.ts" />
-    <TypeScriptCompile Include="preloadjs.d.ts" />
-    <TypeScriptCompile Include="soundjs.d.ts" />
-    <TypeScriptCompile Include="tweenjs.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/curvecontrol.ts" />
+    <TypeScriptCompile Include="./scripts/typings/box2d/box2dweb.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/createjs/createjs-lib.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/createjs/createjs.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/createjs/easeljs.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/kinetic/kinetic.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/preloadjs/preloadjs.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/createjs/soundjs.d.ts" />
+    <TypeScriptCompile Include="./scripts/typings/tweenjs/tweenjs.d.ts" />
   </ItemGroup>
   <ItemGroup>
     <None Include="web.Debug.config">
