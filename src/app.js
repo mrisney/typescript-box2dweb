@@ -1,9 +1,27 @@
-﻿/// <reference path="./scripts/typings/jquery/jquery.d.ts"/>
+﻿var CurveControl;
+(function (CurveControl) {
+    var ClassOne = (function () {
+        function ClassOne(firstname, middleinitial, lastname) {
+            this.firstname = firstname;
+            this.middleinitial = middleinitial;
+            this.lastname = lastname;
+            this.fullname = firstname + " " + middleinitial + " " + lastname;
+        }
+        ClassOne.prototype.testMethod = function () {
+            alert(this.fullname);
+        };
+        return ClassOne;
+    })();
+    CurveControl.ClassOne = ClassOne;
+})(CurveControl || (CurveControl = {}));
+/// <reference path="./scripts/typings/jquery/jquery.d.ts"/>
+/// <reference path="./scripts/typings/createjs/createjs-lib.d.ts"/>
 /// <reference path="./scripts/typings/createjs/createjs.d.ts"/>
 /// <reference path="./scripts/typings/createjs/easeljs.d.ts"/>
 /// <reference path="./scripts/typings/preloadjs/preloadjs.d.ts"/>
 /// <reference path="./scripts/typings/box2d/box2dweb.d.ts" />
 /// <reference path="./scripts/typings/kinetic/kinetic.d.ts" />
+/// <reference path="./scripts/typings/curvecontrol.ts" />
 window.addEventListener('load', function () {
     var canvas = document.getElementById('surface');
     var main = new project.Main(canvas);
@@ -25,6 +43,8 @@ var project;
     var b2m = Box2D.Common.Math;
     var b2d = Box2D.Dynamics;
     var b2s = Box2D.Collision.Shapes;
+
+    var ClassOne = CurveControl.ClassOne;
 
     var canvas;
     var stage;
@@ -55,7 +75,10 @@ var project;
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
         }
         Main.prototype.settings = function () {
-            alert('settings clicked');
+            var classOne = new ClassOne("test", "test", "test");
+            classOne.testMethod();
+            //var rect = new Kinetic.Rect({ width: 10, height: 10, cornerRadius: 5 });
+            //alert('settings clicked');
         };
 
         Main.prototype.pause = function () {

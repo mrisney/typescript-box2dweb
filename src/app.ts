@@ -1,9 +1,12 @@
 ﻿/// <reference path="./scripts/typings/jquery/jquery.d.ts"/>
+/// <reference path="./scripts/typings/createjs/createjs-lib.d.ts"/>
 /// <reference path="./scripts/typings/createjs/createjs.d.ts"/>
 /// <reference path="./scripts/typings/createjs/easeljs.d.ts"/>
 /// <reference path="./scripts/typings/preloadjs/preloadjs.d.ts"/>
 /// <reference path="./scripts/typings/box2d/box2dweb.d.ts" />
 /// <reference path="./scripts/typings/kinetic/kinetic.d.ts" />
+/// <reference path="./scripts/typings/curvecontrol.ts" />
+
 
 window.addEventListener('load', () => {
     var canvas = <HTMLCanvasElement> document.getElementById('surface');
@@ -30,6 +33,8 @@ module project {
     import b2s = Box2D.Collision.Shapes;
     import b2j = Box2D.Dynamics.Joints;
 
+    import ClassOne = CurveControl.ClassOne;
+
     var canvas: HTMLCanvasElement;
     var stage: createjs.Stage;
 
@@ -37,8 +42,6 @@ module project {
     var bodies: any[] = new Array();
     var surfaces: any[] = new Array();
     export var world: Box2D.Dynamics.b2World;
-
-
 
     export class Main {
 
@@ -57,9 +60,6 @@ module project {
             world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
             stage.addEventListener('stagemousedown', this.createBall);
 
-         
-
-
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
             createjs.Ticker.addEventListener('tick', this.tick);
@@ -67,11 +67,15 @@ module project {
             window.addEventListener("resize", this.onResizeHandler.bind(this), false);
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
 
-
         }
 
         settings(): void {
-            alert('settings clicked');
+            var classOne = new ClassOne("test","test", "test");
+            classOne.testMethod();
+
+            //var rect = new Kinetic.Rect({ width: 10, height: 10, cornerRadius: 5 });
+
+            //alert('settings clicked');
         }
 
         pause(): void {
