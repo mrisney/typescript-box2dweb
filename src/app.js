@@ -57,6 +57,7 @@ var project;
     var Main = (function () {
         function Main(canvas) {
             this.gravity = 9.81;
+            this.pauseStep = false;
             canvas = canvas;
             stage = new createjs.Stage(canvas);
             createjs.Touch.enable(stage);
@@ -82,7 +83,13 @@ var project;
         };
 
         Main.prototype.pause = function () {
-            alert('pause clicked');
+            if (this.pauseStep == false) {
+                alert('pausing animation');
+                this.pauseStep = true;
+            } else {
+                alert('running animation');
+                this.pauseStep = false;
+            }
         };
 
         Main.prototype.reload = function () {
@@ -126,7 +133,7 @@ var project;
             draw();
 
             //world.DrawDebugData();
-            project.world.Step(1 / 60, 10, 10);
+            project.world.Step(1 / 30, 10, 10);
         };
 
         Main.prototype.changeGravity = function (value) {

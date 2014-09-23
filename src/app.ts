@@ -48,6 +48,7 @@ module project {
         stageW: number;
         stageH: number;
         gravity: number = 9.81;
+        pauseStep: boolean = false;
 
         constructor(canvas: HTMLCanvasElement) {
             canvas = canvas;
@@ -79,7 +80,14 @@ module project {
         }
 
         pause(): void {
-            alert('pause clicked');
+           
+            if (this.pauseStep == false) {
+                alert('pausing animation');
+                this.pauseStep = true;
+            } else {
+                alert('running animation');
+                this.pauseStep = false;
+            }
         }
 
         reload(): void {
@@ -133,7 +141,7 @@ module project {
             stage.update();
             draw();
             //world.DrawDebugData();
-            world.Step(1 / 60, 10, 10);
+            world.Step(1 / 30, 10, 10);
         }
 
         changeGravity(value: number): void {
