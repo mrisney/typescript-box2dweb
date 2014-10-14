@@ -1,35 +1,14 @@
 ﻿/// <reference path="./kinetic/kinetic.d.ts" />
-var CurveControl;
-(function (CurveControl) {
-    var KineticCurve = (function () {
-        function KineticCurve(stageName, width, height) {
-            this.stageName = stageName;
-            this.width = width;
-            this.height = height;
-            this.w = width;
-            this.h = height;
-            this.stage = new Kinetic.Stage({
-                container: stageName,
-                width: width,
-                height: height
-            });
-            this.anchorLayer = new Kinetic.Layer();
-            this.lineLayer = new Kinetic.Layer();
-            this.curveLayer = new Kinetic.Layer();
-            this.bezierPts = {
-                start: this.createAnchor(10, 0),
-                control1: this.createAnchor(250, 800),
-                control2: this.createAnchor(1200, 800),
-                end: this.createAnchor(1175, 400)
-            };
-
-            this.anchorLayer.on('beforeDraw', function () {
-                //this.drawKineticCurves();
-                //this.updateDottedLines();
-            });
+var Curves;
+(function (Curves) {
+    Curves.controlPointlayer;
+    var CurveControl = (function () {
+        function CurveControl(containerName, w, h) {
+            this.stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
+            Curves.controlPointlayer = new Kinetic.Layer();
         }
-        KineticCurve.prototype.createAnchor = function (x, y) {
-            var anchor = new Kinetic.Circle({
+        CurveControl.prototype.createControlPoint = function (x, y) {
+            var controlPoint = new Kinetic.Circle({
                 x: x,
                 y: y,
                 radius: 10,
@@ -39,80 +18,12 @@ var CurveControl;
                 draggable: true
             });
 
-            anchor.on('mouseover', function () {
-                document.body.style.cursor = 'pointer';
-                this.setStrokeWidth(4);
-                this.anchorLayer.draw();
-            });
-            anchor.on('mouseout', function () {
-                document.body.style.cursor = 'default';
-                this.setStrokeWidth(2);
-                this.anchorLayer.draw();
-            });
-            anchor.on('dragend', function () {
-                this.drawKineticCurves();
-                this.updateDottedLines();
-            });
-            this.anchorLayer.add(anchor);
-
-            return anchor;
+            return controlPoint;
         };
-
-        KineticCurve.prototype.drawKineticCurves = function () {
-            var context = this.curveLayer.getContext();
-            context.clear();
-
-            // draw bezier
-            context.beginPath();
-            // context.moveTo(this.bezierPts[0].start.attrs.x, bezierPts[0].start.attrs.y);
-            //context.bezierCurveTo(bezier.control1.attrs.x, bezier.control1.attrs.y, bezier.control2.attrs.x, bezier.control2.attrs.y, bezier.end.attrs.x, bezier.end.attrs.y);
-            //context.setAttr('strokeStyle', 'blue');
-            //context.setAttr('lineWidth', 2);
-            //context.stroke();
-        };
-
-        KineticCurve.prototype.updateDottedLines = function () {
-            //var q = quad;
-            var b = this.bezierPts;
-            // var quadLine = lineLayer.get('#quadLine')[0];
-            //var bezierLine = this.lineLayer.get('#bezierLine')[0];
-            //bezierLine.setPoints([b.start.attrs.x, b.start.attrs.y, b.control1.attrs.x, b.control1.attrs.y, b.control2.attrs.x, b.control2.attrs.y, b.end.attrs.x, b.end.attrs.y]);
-            //lineLayer.draw();
-        };
-
-        KineticCurve.prototype.drawCurves = function () {
-            this.stage.clear();
-            var layer = new Kinetic.Layer();
-
-            var quadLine = new Kinetic.Line({
-                dashArray: [10, 10, 0, 10],
-                strokeWidth: 3,
-                stroke: 'black',
-                lineCap: 'round',
-                id: 'quadLine',
-                opacity: 0.3,
-                points: [0, 0]
-            });
-
-            var bezierLine = new Kinetic.Line({
-                dashArray: [10, 10, 0, 10],
-                strokeWidth: 3,
-                stroke: 'black',
-                lineCap: 'round',
-                id: 'bezierLine',
-                opacity: 0.3,
-                points: [0, 0]
-            });
-
-            //layer.add(quadLine);
-            //layer.add(bezierLine);
-            //layer.add(bezierLine);
-            this.stage.add(this.anchorLayer);
-        };
-        return KineticCurve;
+        return CurveControl;
     })();
-    CurveControl.KineticCurve = KineticCurve;
-})(CurveControl || (CurveControl = {}));
+    Curves.CurveControl = CurveControl;
+})(Curves || (Curves = {}));
 /// <reference path="./scripts/typings/jquery/jquery.d.ts"/>
 /// <reference path="./scripts/typings/createjs/createjs-lib.d.ts"/>
 /// <reference path="./scripts/typings/createjs/createjs.d.ts"/>
@@ -123,51 +34,66 @@ var CurveControl;
 /// <reference path="./scripts/typings/curvecontrol.ts" />
 window.addEventListener('load', function () {
     var canvas = document.getElementById('surface');
-    var main = new project.Main(canvas);
+    var slopePhysics = new SlopePhysics.Main(canvas);
 
     // set up button events
-    document.getElementById("btnReload").addEventListener("click", main.createBall);
-    document.getElementById("btnPause").addEventListener("click", main.pause);
-    document.getElementById("btnSettings").addEventListener("click", main.settings);
+    document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
+    document.getElementById("btnPause").addEventListener("click", slopePhysics.pause);
+    document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
 
     // set up gravity slider
     var gravity = document.getElementById("gravity-range");
     gravity.addEventListener('mouseup', function () {
-        main.changeGravity(this.value);
+        slopePhysics.changeGravity(this.value);
     });
 });
 
-var project;
-(function (project) {
+var SlopePhysics;
+(function (SlopePhysics) {
     var b2m = Box2D.Common.Math;
     var b2d = Box2D.Dynamics;
     var b2s = Box2D.Collision.Shapes;
 
-    var KineticCurve = CurveControl.KineticCurve;
+    var curves = Curves;
 
     var canvas;
     var stage;
+    var context;
 
-    var SCALE = 30;
+    var stageW;
+    var stageH;
     var bodies = new Array();
     var surfaces = new Array();
-    project.world;
+
+    SlopePhysics.world;
+    SlopePhysics.scale = 30;
+    SlopePhysics.step = 20;
+    var ControlPoints = (function () {
+        function ControlPoints() {
+        }
+        return ControlPoints;
+    })();
+    SlopePhysics.ControlPoints = ControlPoints;
+    var controlPoints;
+    var curveControl;
 
     var Main = (function () {
         function Main(canvas) {
             var _this = this;
             this.gravity = 9.81;
-            this.pauseStep = false;
             //createBall(event: createjs.MouseEvent): void {
             this.createBall = function () {
                 //console.log('clicked at ' + event.stageX + ',' + event.stageY);
                 _this.removeBodies();
 
+                var x = controlPoints.startPoint.getAttr('x');
+                var y = controlPoints.startPoint.getAttr('y');
+
                 var bodyDef = new b2d.b2BodyDef();
 
                 bodyDef.type = b2d.b2Body.b2_dynamicBody;
-                bodyDef.position.x = 100 / SCALE;
-                bodyDef.position.y = 200 / SCALE;
+                bodyDef.position.x = x / SlopePhysics.scale;
+                bodyDef.position.y = y / SlopePhysics.scale;
                 bodyDef.userData = 'ball';
 
                 var fixDef = new b2d.b2FixtureDef();
@@ -175,10 +101,10 @@ var project;
                 fixDef.density = 0.5;
                 fixDef.friction = 0.5;
                 fixDef.restitution = 0.9;
-                fixDef.shape = new b2s.b2CircleShape(30 / SCALE);
+                fixDef.shape = new b2s.b2CircleShape(30 / SlopePhysics.scale);
                 fixDef.userData = 'ball';
 
-                var body = project.world.CreateBody(bodyDef);
+                var body = SlopePhysics.world.CreateBody(bodyDef);
                 body.CreateFixture(fixDef);
 
                 //body.SetAwake(true);
@@ -187,14 +113,23 @@ var project;
                 //body.ApplyForce(new b2m.b2Vec2(10000, 100), body.GetWorldPoint(new b2m.b2Vec2(0, -3)));
                 bodies.push(body);
             };
-            canvas = canvas;
+            this.canvas = canvas;
+            context = canvas.getContext("2d");
             stage = new createjs.Stage(canvas);
             createjs.Touch.enable(stage);
             stage.mouseEnabled = true;
-            this.stageW = canvas.width;
-            this.stageH = canvas.height;
+            stageW = canvas.width;
+            stageH = canvas.height;
 
-            project.world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
+            curveControl = new curves.CurveControl('container', stageW, stageH);
+            controlPoints = new ControlPoints();
+            controlPoints.startPoint = curveControl.createControlPoint(10, 0);
+            controlPoints.point1 = curveControl.createControlPoint(250, 800);
+            controlPoints.point2 = curveControl.createControlPoint(1200, 800);
+            controlPoints.endPoint = curveControl.createControlPoint(1175, 400);
+            controlPoints.main = this;
+
+            SlopePhysics.world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
             stage.addEventListener('stagemousedown', this.createBall);
             this.createCurvedSurface();
 
@@ -207,19 +142,59 @@ var project;
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
         }
         Main.prototype.settings = function () {
-            var curve = new KineticCurve("test", "test", "test");
-            // curve.createAnchor();
-            //var rect = new Kinetic.Rect({ width: 10, height: 10, cornerRadius: 5 });
-            //alert('settings clicked');
+            var stage = new Kinetic.Stage({ container: 'container', width: stageW, height: stageH });
+            stage.clear();
+            var layer = new Kinetic.Layer();
+
+            controlPoints.startPoint.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            controlPoints.point1.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            controlPoints.point2.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            controlPoints.endPoint.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            layer.add(controlPoints.startPoint);
+
+            layer.add(controlPoints.point1);
+            layer.add(controlPoints.point2);
+            layer.add(controlPoints.endPoint);
+
+            // var canvas = new Kinetic.Layer().getCanvas()._canvas;
+            //  var circle = new Kinetic.Circle({
+            //      x: stage.getWidth() / 2,
+            //      y: stage.getHeight() / 2,
+            //      radius: 25,
+            //      fill: '#666',
+            //      stroke: '#ddd',
+            //      strokeWidth: 4,
+            //      draggable: true
+            //  });
+            //layer.add(circle);
+            stage.add(layer);
+            // kineticCurve.createAnchor(10, 10);
+            // kineticCurve.drawCurves();
+            /// var jsonString = JSON.stringify(kineticCurve);
+            // console.log(jsonString);
         };
 
         Main.prototype.pause = function () {
-            if (this.pauseStep == false) {
-                alert('pausing animation');
-                this.pauseStep = true;
+            if (SlopePhysics.step == 0) {
+                SlopePhysics.step = 20;
             } else {
-                alert('running animation');
-                this.pauseStep = false;
+                SlopePhysics.step = 0;
             }
         };
 
@@ -228,6 +203,8 @@ var project;
         };
 
         Main.prototype.createCurvedSurface = function () {
+            console.log('creating curved surface');
+
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
@@ -243,21 +220,14 @@ var project;
             var ptArray = new Array();
             var x1, y1, x2, y2;
 
-            var curvedSurface = project.world.CreateBody(surfaceDef);
-            var kineticCurve = new KineticCurve("container", this.stageW, this.stageH);
-            var bezier = {
-                start: kineticCurve.createAnchor(10, 0),
-                control1: kineticCurve.createAnchor(250, 800),
-                control2: kineticCurve.createAnchor(1200, 800),
-                end: kineticCurve.createAnchor(1175, 400)
-            };
+            var curvedSurface = SlopePhysics.world.CreateBody(surfaceDef);
 
-            var ptOnCurve = this.getCubicBezierXYatT(bezier.start, bezier.control1, bezier.control2, bezier.end, 0);
+            var ptOnCurve = this.getCubicBezierXYatT(controlPoints.startPoint, controlPoints.point1, controlPoints.point2, controlPoints.endPoint, 0);
 
             x1 = this.p2m(ptOnCurve.x);
             y1 = this.p2m(ptOnCurve.y);
             for (var i = 0; i < 1.00; i += 0.01) {
-                ptOnCurve = this.getCubicBezierXYatT(bezier.start, bezier.control1, bezier.control2, bezier.end, i);
+                ptOnCurve = this.getCubicBezierXYatT(controlPoints.startPoint, controlPoints.point1, controlPoints.point2, controlPoints.endPoint, i);
                 x2 = this.p2m(ptOnCurve.x);
                 y2 = this.p2m(ptOnCurve.y);
                 var edgeShape = new b2s.b2PolygonShape();
@@ -267,23 +237,15 @@ var project;
                 y1 = y2;
             }
 
-            var debugDraw = new b2d.b2DebugDraw();
-
-            var canvas = document.getElementById('surface');
-            var ctx = canvas.getContext('2d');
-
-            debugDraw.SetSprite(ctx);
-            debugDraw.SetDrawScale(SCALE);
-            debugDraw.SetFlags(b2d.b2DebugDraw.e_shapeBit | b2d.b2DebugDraw.e_jointBit);
-            project.world.SetDebugDraw(debugDraw);
+            surfaces.push(curvedSurface);
         };
 
         Main.prototype.createFlatSurface = function () {
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
-            surfaceDef.position.x = this.stageW / 2 / SCALE;
-            surfaceDef.position.y = this.stageH / SCALE;
+            surfaceDef.position.x = stageW / 2 / SlopePhysics.scale;
+            surfaceDef.position.y = stageH / SlopePhysics.scale;
             surfaceDef.userData = 'flat-surface';
 
             // create surface fixture defintion
@@ -292,12 +254,12 @@ var project;
             surfaceFixtureDef.friction = 0.5;
 
             var shape = new b2s.b2PolygonShape();
-            var width = this.stageW / SCALE;
-            var height = 20 / SCALE;
+            var width = stageW / SlopePhysics.scale;
+            var height = 20 / SlopePhysics.scale;
             shape.SetAsBox(width, height);
             surfaceFixtureDef.shape = shape;
 
-            var flatSurface = project.world.CreateBody(surfaceDef).CreateFixture(surfaceFixtureDef);
+            var flatSurface = SlopePhysics.world.CreateBody(surfaceDef).CreateFixture(surfaceFixtureDef);
             surfaces.push(flatSurface);
 
             console.log('surface created, width : ' + width + ', height : ' + height);
@@ -308,17 +270,16 @@ var project;
             draw();
 
             //world.DrawDebugData();
-            project.world.Step(1 / 30, 10, 10);
+            SlopePhysics.world.Step(1 / SlopePhysics.step, 10, 10);
         };
 
         Main.prototype.changeGravity = function (value) {
-            alert('gravity : ' + value);
             this.gravity = value * 10;
-            project.world.SetGravity(new b2m.b2Vec2(0, this.gravity));
+            SlopePhysics.world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         };
 
         Main.prototype.p2m = function (x) {
-            return x / SCALE;
+            return x / SlopePhysics.scale;
         };
 
         Main.prototype.getCubicBezierXYatT = function (startPt, controlPt1, controlPt2, endPt, T) {
@@ -336,6 +297,7 @@ var project;
         };
 
         Main.prototype.onResizeHandler = function (event) {
+            if (typeof event === "undefined") { event = null; }
             this.removeBodies();
             this.removeSurfaces();
 
@@ -343,9 +305,9 @@ var project;
             stage.canvas.height = window.innerHeight;
             stage.update();
 
-            this.stageW = window.innerWidth;
+            stageW = window.innerWidth;
             ;
-            this.stageH = window.innerHeight;
+            stageH = window.innerHeight;
             this.createCurvedSurface();
             //this.createFlatSurface();
         };
@@ -353,7 +315,7 @@ var project;
         Main.prototype.removeSurfaces = function () {
             while (surfaces.length) {
                 var surface = surfaces.pop();
-                project.world.DestroyBody(surface);
+                SlopePhysics.world.DestroyBody(surface);
             }
             stage.update();
         };
@@ -361,20 +323,20 @@ var project;
         Main.prototype.removeBodies = function () {
             while (bodies.length) {
                 var body = bodies.pop();
-                project.world.DestroyBody(body);
+                SlopePhysics.world.DestroyBody(body);
             }
             stage.update();
         };
         return Main;
     })();
-    project.Main = Main;
+    SlopePhysics.Main = Main;
 
     function draw() {
         var canvas = document.getElementById('surface');
         var ctx = canvas.getContext('2d');
         var deletionBuffer = 4;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        var node = project.world.GetBodyList();
+        var node = SlopePhysics.world.GetBodyList();
         while (node) {
             var body = node;
             node = node.GetNext();
@@ -382,7 +344,7 @@ var project;
 
             // remove body that have floated off screen
             if (position.x < -deletionBuffer || position.x > (canvas.width + 4)) {
-                project.world.DestroyBody(body);
+                SlopePhysics.world.DestroyBody(body);
                 continue;
             }
 
@@ -402,14 +364,14 @@ var project;
                         var pos = body.GetPosition();
 
                         ctx.save();
-                        ctx.translate(pos.x * SCALE, pos.y * SCALE);
-                        ctx.translate(-pos.x * SCALE, -pos.y * SCALE);
+                        ctx.translate(pos.x * SlopePhysics.scale, pos.y * SlopePhysics.scale);
+                        ctx.translate(-pos.x * SlopePhysics.scale, -pos.y * SlopePhysics.scale);
 
                         ctx.lineWidth = 1;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
-                        ctx.strokeRect(((pos.x * SCALE) - (x * SCALE / 2)), ((pos.y * SCALE) - (y * SCALE / 2)), x * SCALE, y * SCALE);
+                        ctx.strokeRect(((pos.x * SlopePhysics.scale) - (x * SlopePhysics.scale / 2)), ((pos.y * SlopePhysics.scale) - (y * SlopePhysics.scale / 2)), x * SlopePhysics.scale, y * SlopePhysics.scale);
                         ctx.fillStyle = "rgb(255, 255, 255)";
-                        ctx.fillRect(((pos.x * SCALE) - (x * SCALE / 2)), ((pos.y * SCALE) - (y * SCALE / 2)), x * SCALE, y * SCALE);
+                        ctx.fillRect(((pos.x * SlopePhysics.scale) - (x * SlopePhysics.scale / 2)), ((pos.y * SlopePhysics.scale) - (y * SlopePhysics.scale / 2)), x * SlopePhysics.scale, y * SlopePhysics.scale);
                         ctx.restore();
                     }
                 } else if (userData == 'curved-surface') {
@@ -419,12 +381,12 @@ var project;
                         fixture = fixture.GetNext();
 
                         ctx.beginPath();
-                        ctx.lineWidth = 1;
+                        ctx.lineWidth = 0.5;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
                         var vs = shape.GetVertices();
                         for (var i = 0; i < vs.length; i++) {
-                            var x = vs[i].x * SCALE;
-                            var y = vs[i].y * SCALE;
+                            var x = vs[i].x * SlopePhysics.scale;
+                            var y = vs[i].y * SlopePhysics.scale;
                             if (i == 0) {
                                 ctx.moveTo(x, y);
                             } else {
@@ -447,11 +409,11 @@ var project;
                         var circleShape = shape;
                         var radius = circleShape.GetRadius();
                         ctx.save();
-                        ctx.translate(position.x * SCALE, position.y * SCALE);
+                        ctx.translate(position.x * SlopePhysics.scale, position.y * SlopePhysics.scale);
                         ctx.rotate(angle * (Math.PI / 180));
-                        ctx.translate(-position.x * SCALE, -position.y * SCALE);
+                        ctx.translate(-position.x * SlopePhysics.scale, -position.y * SlopePhysics.scale);
                         ctx.beginPath();
-                        ctx.arc(position.x * SCALE, position.y * SCALE, radius * SCALE, 0, 2 * Math.PI, false);
+                        ctx.arc(position.x * SlopePhysics.scale, position.y * SlopePhysics.scale, radius * SlopePhysics.scale, 0, 2 * Math.PI, false);
                         ctx.closePath();
                         ctx.lineWidth = 1;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
@@ -464,5 +426,5 @@ var project;
             }
         }
     }
-})(project || (project = {}));
+})(SlopePhysics || (SlopePhysics = {}));
 //# sourceMappingURL=app.js.map

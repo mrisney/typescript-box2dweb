@@ -1,17 +1,23 @@
-﻿var CurveControl;
-(function (CurveControl) {
-    var ClassOne = (function () {
-        function ClassOne(firstname, middleinitial, lastname) {
-            this.firstname = firstname;
-            this.middleinitial = middleinitial;
-            this.lastname = lastname;
-            this.fullname = firstname + " " + middleinitial + " " + lastname;
-        }
-        ClassOne.prototype.testMethod = function () {
-            alert(this.fullname);
-        };
-        return ClassOne;
-    })();
-    CurveControl.ClassOne = ClassOne;
-})(CurveControl || (CurveControl = {}));
+﻿define(["require", "exports"], function(require, exports) {
+    /// <reference path="./kinetic/kinetic.d.ts" />
+    (function (Curves) {
+        var CurveControl = (function () {
+            function CurveControl(stageName, width, height) {
+                this.stageName = stageName;
+                this.width = width;
+                this.height = height;
+                this.w = width;
+                this.h = height;
+                this.stage = new Kinetic.Stage({
+                    container: stageName,
+                    width: width,
+                    height: height
+                });
+            }
+            return CurveControl;
+        })();
+        Curves.CurveControl = CurveControl;
+    })(exports.Curves || (exports.Curves = {}));
+    var Curves = exports.Curves;
+});
 //# sourceMappingURL=curvecontrol.js.map

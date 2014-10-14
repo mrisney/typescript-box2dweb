@@ -10,60 +10,80 @@
 
 window.addEventListener('load', () => {
     var canvas = <HTMLCanvasElement> document.getElementById('surface');
-    var main = new project.Main(canvas);
+    var slopePhysics = new SlopePhysics.Main(canvas);
 
     // set up button events
-    document.getElementById("btnReload").addEventListener("click", main.createBall);
-    document.getElementById("btnPause").addEventListener("click", main.pause);
-    document.getElementById("btnSettings").addEventListener("click", main.settings);
+    document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
+    document.getElementById("btnPause").addEventListener("click", slopePhysics.pause);
+    document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
+
 
     // set up gravity slider
     var gravity = document.getElementById("gravity-range");
     gravity.addEventListener('mouseup', function () {
-        main.changeGravity(this.value);
+        slopePhysics.changeGravity(this.value);
     });
 
 })
 
-module project {
+module SlopePhysics {
 
     import b2c = Box2D.Common;
     import b2m = Box2D.Common.Math;
     import b2d = Box2D.Dynamics;
     import b2s = Box2D.Collision.Shapes;
     import b2j = Box2D.Dynamics.Joints;
-
-    import KineticCurve = CurveControl.KineticCurve;
+    import curves = Curves;
 
     var canvas: HTMLCanvasElement;
     var stage: createjs.Stage;
+    var context: CanvasRenderingContext2D;
 
-    var SCALE: number = 30;
+    var stageW: number;
+    var stageH: number;
     var bodies: any[] = new Array();
     var surfaces: any[] = new Array();
+
     export var world: Box2D.Dynamics.b2World;
+    export var scale: number = 30;
+    export var step: number = 20;
+    export class ControlPoints {
+        public startPoint: Kinetic.Circle;
+        public point1: Kinetic.Circle;
+        public point2: Kinetic.Circle;
+        public endPoint: Kinetic.Circle;
+        public main: Main;
+    }
+    var controlPoints: ControlPoints;
+    var curveControl: curves.CurveControl;
 
     export class Main {
+        public gravity: number = 9.81;
+        public canvas: HTMLCanvasElement;
 
-        stageW: number;
-        stageH: number;
-        gravity: number = 9.81;
-        pauseStep: boolean = false;
 
         constructor(canvas: HTMLCanvasElement) {
-            canvas = canvas;
+            this.canvas = canvas;
+            context = canvas.getContext("2d");
             stage = new createjs.Stage(canvas);
             createjs.Touch.enable(stage);
             stage.mouseEnabled = true;
-            this.stageW = canvas.width;
-            this.stageH = canvas.height;
+            stageW = canvas.width;
+            stageH = canvas.height;
+
+
+            curveControl = new curves.CurveControl('container', stageW, stageH);
+            controlPoints = new ControlPoints();
+            controlPoints.startPoint = curveControl.createControlPoint(10, 0);
+            controlPoints.point1 = curveControl.createControlPoint(250, 800);
+            controlPoints.point2 = curveControl.createControlPoint(1200, 800);
+            controlPoints.endPoint = curveControl.createControlPoint(1175, 400);
+            controlPoints.main = this;
 
             world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
             stage.addEventListener('stagemousedown', this.createBall);
             this.createCurvedSurface();
             //this.createFlatSurface();
-
-
 
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
@@ -72,25 +92,66 @@ module project {
             window.addEventListener("resize", this.onResizeHandler.bind(this), false);
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
 
+
+
         }
 
-        settings(): void {
-            var curve = new KineticCurve("test", "test", "test");
-            // curve.createAnchor();
+        public settings(): void {
+            var stage = new Kinetic.Stage({ container: 'container', width: stageW, height: stageH });
+            stage.clear();
+            var layer = new Kinetic.Layer();
 
-            //var rect = new Kinetic.Rect({ width: 10, height: 10, cornerRadius: 5 });
+            controlPoints.startPoint.on('dragstart dragmove', function () {
 
-            //alert('settings clicked');
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            controlPoints.point1.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            controlPoints.point2.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+            controlPoints.endPoint.on('dragstart dragmove', function () {
+                controlPoints.main.removeSurfaces();
+                controlPoints.main.createCurvedSurface();
+            });
+
+
+            layer.add(controlPoints.startPoint);
+
+            layer.add(controlPoints.point1);
+            layer.add(controlPoints.point2);
+            layer.add(controlPoints.endPoint);
+
+            // var canvas = new Kinetic.Layer().getCanvas()._canvas;
+            //  var circle = new Kinetic.Circle({
+            //      x: stage.getWidth() / 2,
+            //      y: stage.getHeight() / 2,
+            //      radius: 25,
+            //      fill: '#666',
+            //      stroke: '#ddd',
+            //      strokeWidth: 4,
+            //      draggable: true
+            //  });
+            //layer.add(circle);
+            stage.add(layer);
+            // kineticCurve.createAnchor(10, 10);
+            // kineticCurve.drawCurves();
+            /// var jsonString = JSON.stringify(kineticCurve);
+            // console.log(jsonString);
         }
 
         pause(): void {
-
-            if (this.pauseStep == false) {
-                alert('pausing animation');
-                this.pauseStep = true;
+            if (step == 0) {
+                step = 20;
             } else {
-                alert('running animation');
-                this.pauseStep = false;
+                step = 0;
             }
         }
 
@@ -99,9 +160,8 @@ module project {
 
         }
 
-
-        createCurvedSurface(): void {
-
+        public createCurvedSurface(): void {
+            console.log('creating curved surface');
 
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
@@ -119,20 +179,14 @@ module project {
             var x1, y1, x2, y2;
 
             var curvedSurface = world.CreateBody(surfaceDef);
-            var kineticCurve = new KineticCurve("container", this.stageW, this.stageH);
-            var bezier = {
-                start: kineticCurve.createAnchor(10, 0),
-                control1: kineticCurve.createAnchor(250, 800),
-                control2: kineticCurve.createAnchor(1200, 800),
-                end: kineticCurve.createAnchor(1175, 400)
-            };
 
-            var ptOnCurve = this.getCubicBezierXYatT(bezier.start, bezier.control1, bezier.control2, bezier.end, 0);
+
+            var ptOnCurve = this.getCubicBezierXYatT(controlPoints.startPoint, controlPoints.point1, controlPoints.point2, controlPoints.endPoint, 0);
 
             x1 = this.p2m(ptOnCurve.x);
             y1 = this.p2m(ptOnCurve.y);
             for (var i = 0; i < 1.00; i += 0.01) {
-                ptOnCurve = this.getCubicBezierXYatT(bezier.start, bezier.control1, bezier.control2, bezier.end, i);
+                ptOnCurve = this.getCubicBezierXYatT(controlPoints.startPoint, controlPoints.point1, controlPoints.point2, controlPoints.endPoint, i);
                 x2 = this.p2m(ptOnCurve.x);
                 y2 = this.p2m(ptOnCurve.y);
                 var edgeShape = new b2s.b2PolygonShape();
@@ -142,17 +196,7 @@ module project {
                 y1 = y2;
             }
 
-            var debugDraw: b2d.b2DebugDraw = new b2d.b2DebugDraw();
-
-
-            var canvas = <HTMLCanvasElement> document.getElementById('surface');
-            var ctx = canvas.getContext('2d');
-
-            debugDraw.SetSprite(ctx);
-            debugDraw.SetDrawScale(SCALE);
-            debugDraw.SetFlags(b2d.b2DebugDraw.e_shapeBit | b2d.b2DebugDraw.e_jointBit);
-            world.SetDebugDraw(debugDraw);
-
+            surfaces.push(curvedSurface);
         }
 
 
@@ -162,8 +206,8 @@ module project {
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
-            surfaceDef.position.x = this.stageW / 2 / SCALE;
-            surfaceDef.position.y = this.stageH / SCALE;
+            surfaceDef.position.x = stageW / 2 / scale;
+            surfaceDef.position.y = stageH / scale;
             surfaceDef.userData = 'flat-surface';
 
             // create surface fixture defintion
@@ -172,8 +216,8 @@ module project {
             surfaceFixtureDef.friction = 0.5;
 
             var shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
-            var width: number = this.stageW / SCALE;
-            var height: number = 20 / SCALE;
+            var width: number = stageW / scale;
+            var height: number = 20 / scale;
             shape.SetAsBox(width, height);
             surfaceFixtureDef.shape = shape;
 
@@ -188,11 +232,10 @@ module project {
             stage.update();
             draw();
             //world.DrawDebugData();
-            world.Step(1 / 30, 10, 10);
+            world.Step(1 / step, 10, 10);
         }
 
         changeGravity(value: number): void {
-            alert('gravity : ' + value);
             this.gravity = value * 10;
             world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         }
@@ -203,11 +246,14 @@ module project {
             //console.log('clicked at ' + event.stageX + ',' + event.stageY);
             this.removeBodies();
 
+            var x: number = controlPoints.startPoint.getAttr('x');
+            var y: number = controlPoints.startPoint.getAttr('y');
+
             var bodyDef = new b2d.b2BodyDef();
 
             bodyDef.type = b2d.b2Body.b2_dynamicBody;
-            bodyDef.position.x = 100 / SCALE;
-            bodyDef.position.y = 200 / SCALE;
+            bodyDef.position.x = x / scale;
+            bodyDef.position.y = y / scale;
             bodyDef.userData = 'ball';
 
             var fixDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
@@ -215,7 +261,7 @@ module project {
             fixDef.density = 0.5;
             fixDef.friction = 0.5;
             fixDef.restitution = 0.9;
-            fixDef.shape = new b2s.b2CircleShape(30 / SCALE);
+            fixDef.shape = new b2s.b2CircleShape(30 / scale);
             fixDef.userData = 'ball';
 
             var body = world.CreateBody(bodyDef);
@@ -235,7 +281,7 @@ module project {
         }
 
         private p2m(x): number {
-            return x / SCALE;
+            return x / scale;
         }
 
         private getCubicBezierXYatT(startPt, controlPt1, controlPt2, endPt, T): any {
@@ -257,7 +303,7 @@ module project {
                 + d * t3;
         }
 
-        private onResizeHandler(event: Event): void {
+        private onResizeHandler(event: Event = null): void {
 
             this.removeBodies();
             this.removeSurfaces();
@@ -266,14 +312,14 @@ module project {
             stage.canvas.height = window.innerHeight;
             stage.update();
 
-            this.stageW = window.innerWidth;;
-            this.stageH = window.innerHeight;
+            stageW = window.innerWidth;;
+            stageH = window.innerHeight;
             this.createCurvedSurface();
             //this.createFlatSurface();
         }
 
 
-        private removeSurfaces(): void {
+        public removeSurfaces(): void {
             while (surfaces.length) {
                 var surface = surfaces.pop();
                 world.DestroyBody(surface);
@@ -296,7 +342,7 @@ module project {
         var canvas = <HTMLCanvasElement> document.getElementById('surface');
         var ctx = canvas.getContext('2d');
         var deletionBuffer = 4;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         var node = world.GetBodyList();
         while (node) {
             var body = node;
@@ -323,14 +369,14 @@ module project {
                         var pos = body.GetPosition();
 
                         ctx.save();
-                        ctx.translate(pos.x * SCALE, pos.y * SCALE);
-                        ctx.translate(-pos.x * SCALE, -pos.y * SCALE);
+                        ctx.translate(pos.x * scale, pos.y * scale);
+                        ctx.translate(-pos.x * scale, -pos.y * scale);
 
                         ctx.lineWidth = 1;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
-                        ctx.strokeRect(((pos.x * SCALE) - (x * SCALE / 2)), ((pos.y * SCALE) - (y * SCALE / 2)), x * SCALE, y * SCALE);
+                        ctx.strokeRect(((pos.x * scale) - (x * scale / 2)), ((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
                         ctx.fillStyle = "rgb(255, 255, 255)";
-                        ctx.fillRect(((pos.x * SCALE) - (x * SCALE / 2)), ((pos.y * SCALE) - (y * SCALE / 2)), x * SCALE, y * SCALE);
+                        ctx.fillRect(((pos.x * scale) - (x * scale / 2)), ((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
                         ctx.restore();
                     }
                 } else if (userData == 'curved-surface') {
@@ -340,12 +386,12 @@ module project {
                         fixture = fixture.GetNext();
 
                         ctx.beginPath();
-                        ctx.lineWidth = 1;
+                        ctx.lineWidth = 0.5;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
                         var vs = shape.GetVertices();
                         for (var i = 0; i < vs.length; i++) {
-                            var x = vs[i].x * SCALE
-                            var y = vs[i].y * SCALE
+                            var x = vs[i].x * scale
+                            var y = vs[i].y * scale
                             if (i == 0) {
                                 ctx.moveTo(x, y)
                             } else {
@@ -368,11 +414,11 @@ module project {
                         var circleShape = <b2s.b2CircleShape> shape;
                         var radius = circleShape.GetRadius();
                         ctx.save();
-                        ctx.translate(position.x * SCALE, position.y * SCALE);
+                        ctx.translate(position.x * scale, position.y * scale);
                         ctx.rotate(angle * (Math.PI / 180));
-                        ctx.translate(-position.x * SCALE, -position.y * SCALE);
+                        ctx.translate(-position.x * scale, -position.y * scale);
                         ctx.beginPath();
-                        ctx.arc(position.x * SCALE, position.y * SCALE, radius * SCALE, 0, 2 * Math.PI, false);
+                        ctx.arc(position.x * scale, position.y * scale, radius * scale, 0, 2 * Math.PI, false);
                         ctx.closePath();
                         ctx.lineWidth = 1;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
