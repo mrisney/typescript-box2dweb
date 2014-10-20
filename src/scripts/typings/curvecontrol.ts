@@ -1,14 +1,64 @@
 ﻿/// <reference path="./kinetic/kinetic.d.ts" />
+/// <reference path="./polygonsubdivision.ts" />
 module Curves {
     export var controlPointlayer: Kinetic.Layer;
+    export var subdivisionPoint: PolygonSubdivision.Point
+    export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
+    export var polylineSimplify: PolygonSubdivision.PolylineSimplify
+    export var stage: Kinetic.Stage;
+    export var lineTolerance: number;
+    export var drawPoints: Array<PolygonSubdivision.Point>;
+
     export class CurveControl {
-        public stage: Kinetic.Stage;
         public controlPointlayer: Kinetic.Layer;
+        public controlPoints: Array<Kinetic.Circle>;
+        public drawPoints: Array<PolygonSubdivision.Point>;
+        
 
         constructor(containerName: String, w: number, h: number) {
-            this.stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
-            controlPointlayer = new Kinetic.Layer();
+            this.controlPointlayer = new Kinetic.Layer();
+            this.controlPoints = new Array<Kinetic.Circle>();
+            stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
+            chaikinCurve = new PolygonSubdivision.ChaikinCurve();
+            drawPoints = new Array<PolygonSubdivision.Point>();
+            lineTolerance = 1.0;
         }
+        public addControlPoint(x: number, y: number): void {
+            var controlPoint = new Kinetic.Circle({
+                x: x,
+                y: y,
+                radius: 10,
+                stroke: '#666',
+                fill: '#ddd',
+                strokeWidth: 2,
+                text: 'p1',
+                draggable: true
+            });
+            this.controlPointlayer.add(controlPoint);
+            this.controlPoints.push(controlPoint);
+            // console.log('control points =' + JSON.stringify(this.controlPoints));
+            var point1: PolygonSubdivision.Point = new PolygonSubdivision.Point(x, y);
+            var point2: PolygonSubdivision.Point = new PolygonSubdivision.Point(x + 1, y + 1);
+            var point3: PolygonSubdivision.Point = new PolygonSubdivision.Point(x + 2, y + 2);
+            var points: Array<PolygonSubdivision.Point> = new Array<PolygonSubdivision.Point>();
+            points.push(point1);
+            points.push(point2);
+            points.push(point3);
+
+            var curvePoints: Array<PolygonSubdivision.Point> = chaikinCurve.subdivide(points, 7);
+            //console.log(curvePoints);
+
+        }
+        public getCurvePoints(): Array<PolygonSubdivision.Point> {
+            var points = new Array<PolygonSubdivision.Point>();
+            for (var ctrlPoint in this.controlPoints) {
+                var point = new PolygonSubdivision.Point(ctrlPoint.getAttr('x'), ctrlPoint.getAttr('y'));
+                points.push(point);
+            }
+            var curvePoints: Array<PolygonSubdivision.Point> = chaikinCurve.subdivide(points, 7);
+            return curvePoints;
+        }
+
         public createControlPoint(x: number, y: number): Kinetic.Circle {
             var controlPoint = new Kinetic.Circle({
                 x: x,
@@ -17,10 +67,127 @@ module Curves {
                 stroke: '#666',
                 fill: '#ddd',
                 strokeWidth: 2,
+                text: 'p1',
                 draggable: true
             });
 
             return controlPoint;
+        }
+
+        public setLineTolerance(event: MouseEvent): void {
+            var toleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
+            lineTolerance = +toleranceSlider.value;
+            console.log('lineTolerance = ' + lineTolerance);
+            var simplifiedPoints = polylineSimplify.simplify(drawPoints, lineTolerance,true);
+            
+            var simplepoints = [];
+            for (var i in simplifiedPoints) {
+                simplepoints.push(simplifiedPoints[i].x);
+                simplepoints.push(simplifiedPoints[i].y);
+            }
+            stage.clear();
+            var layer = new Kinetic.Layer();
+            var line1 = new Kinetic.Line({
+                points: simplepoints,
+                stroke: "red",
+                strokeWidth: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            });
+            //layer.add(line1);
+            var plotpoints = [];
+            var curvePoints = chaikinCurve.subdivide(simplifiedPoints, 7);
+            for (var j in curvePoints) {
+                plotpoints.push(curvePoints[j].x);
+                plotpoints.push(curvePoints[j].y);
+            }
+            var line2 = new Kinetic.Line({
+                points: plotpoints,
+                stroke: "blue",
+                strokeWidth: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            });
+
+            layer.add(line2);
+            layer.drawScene();
+            stage.add(layer);
+
+
+        }
+
+
+        public drawLine(): void {
+            polylineSimplify = new PolygonSubdivision.PolylineSimplify();
+            stage.clear();
+            drawPoints.length = 0;
+            var layer = new Kinetic.Layer();
+            var background = new Kinetic.Rect({
+                x: 0,
+                y: 0,
+                width: stage.getWidth(),
+                height: stage.getHeight(),
+                fill: "white"
+            });
+            layer.add(background);
+            layer.draw();
+            stage.add(layer);
+            layer.draw();
+            // a flag we use to see if we're dragging the mouse
+            var isMouseDown = false;
+            // a reference to the line we are currently drawing
+            var newline;
+            // a reference to the array of points making newline
+            var points = new Array<PolygonSubdivision.Point>();
+            var tempPoints = [];
+
+            // on the background
+            // listen for mousedown, mouseup and mousemove events
+            background.on('mousedown', function () {
+                isMouseDown = true;
+                console.log('mouse down');
+                tempPoints = [];
+                drawPoints.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
+                points.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
+                tempPoints = [];
+                tempPoints.push(stage.getPointerPosition().x);
+                tempPoints.push(stage.getPointerPosition().y);
+                var line = new Kinetic.Line({
+                    points: tempPoints,
+                    stroke: "blue",
+                    strokeWidth: 1,
+                    lineCap: 'round',
+                    lineJoin: 'round'
+                });
+                layer.add(line);
+
+                newline = line;
+
+            });
+            background.on('mouseup', function () {
+                isMouseDown = false;
+                
+               
+                var newpoints = polylineSimplify.simplify(points, lineTolerance, true);
+               
+            });
+            background.on('mousemove', function () {
+                if (!isMouseDown) {
+                    return;
+
+                };
+                //console.log('mouse moving' + stage.getPointerPosition().x);
+                points.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
+                drawPoints.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
+                tempPoints.push(stage.getPointerPosition().x);
+                tempPoints.push(stage.getPointerPosition().y)
+
+                //newline.setPoints(points);
+                // use layer.drawScene
+                // this is faster since the "hit" canvas is not refreshed
+                layer.drawScene();
+            });
+            stage.add(layer);
         }
     }
 }

@@ -6,6 +6,7 @@
 /// <reference path="./scripts/typings/box2d/box2dweb.d.ts" />
 /// <reference path="./scripts/typings/kinetic/kinetic.d.ts" />
 /// <reference path="./scripts/typings/curvecontrol.ts" />
+/// <reference path="./scripts/typings/polygonsubdivision.ts" />
 
 
 window.addEventListener('load', () => {
@@ -24,6 +25,14 @@ window.addEventListener('load', () => {
         slopePhysics.changeGravity(this.value);
     });
 
+    // set up gravity slider
+    //var lineTolerance = document.getElementById("line-tolerance-range");
+    //lineTolerance.addEventListener('mouseup', function () {
+    //    slopePhysics.changeLineTolerance(this.value);
+    //});
+
+   
+
 })
 
 module SlopePhysics {
@@ -33,12 +42,17 @@ module SlopePhysics {
     import b2d = Box2D.Dynamics;
     import b2s = Box2D.Collision.Shapes;
     import b2j = Box2D.Dynamics.Joints;
-    import curves = Curves;
+
+    export var curveControl: Curves.CurveControl;
+    export var subdivisionPoint: PolygonSubdivision.Point
+    export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
+    export var polylineSimplify: PolygonSubdivision.PolylineSimplify
+
 
     var canvas: HTMLCanvasElement;
     var stage: createjs.Stage;
     var context: CanvasRenderingContext2D;
-
+    var lineTolerance: number = 1.0;
     var stageW: number;
     var stageH: number;
     var bodies: any[] = new Array();
@@ -55,13 +69,12 @@ module SlopePhysics {
         public main: Main;
     }
     var controlPoints: ControlPoints;
-    var curveControl: curves.CurveControl;
+   
 
     export class Main {
         public gravity: number = 9.81;
         public canvas: HTMLCanvasElement;
-
-
+        
         constructor(canvas: HTMLCanvasElement) {
             this.canvas = canvas;
             context = canvas.getContext("2d");
@@ -70,9 +83,9 @@ module SlopePhysics {
             stage.mouseEnabled = true;
             stageW = canvas.width;
             stageH = canvas.height;
+            polylineSimplify = new PolygonSubdivision.PolylineSimplify();
 
-
-            curveControl = new curves.CurveControl('container', stageW, stageH);
+            curveControl = new Curves.CurveControl('container', stageW, stageH);
             controlPoints = new ControlPoints();
             controlPoints.startPoint = curveControl.createControlPoint(10, 0);
             controlPoints.point1 = curveControl.createControlPoint(250, 800);
@@ -92,14 +105,29 @@ module SlopePhysics {
             window.addEventListener("resize", this.onResizeHandler.bind(this), false);
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
 
+            var lineToleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
+            lineToleranceSlider.addEventListener("mouseup", curveControl.setLineTolerance.bind(this), false);
+            
+          
 
 
         }
 
         public settings(): void {
-            var stage = new Kinetic.Stage({ container: 'container', width: stageW, height: stageH });
-            stage.clear();
-            var layer = new Kinetic.Layer();
+            var tolerance = lineTolerance;
+            curveControl.drawLine();
+         
+
+            // On mousedown
+            //
+
+
+            /*
+            controlPoints.startPoint.on('touchstart mousedown', function () {
+                controlPoints.main.createBall();
+            });
+
+
 
             controlPoints.startPoint.on('dragstart dragmove', function () {
 
@@ -125,9 +153,47 @@ module SlopePhysics {
 
             layer.add(controlPoints.startPoint);
 
-            layer.add(controlPoints.point1);
+           // layer.add(controlPoints.point1);
             layer.add(controlPoints.point2);
             layer.add(controlPoints.endPoint);
+
+
+            // create label
+            var label = new Kinetic.Label({
+                x: controlPoints.point1.getAttr('x'),
+                y: controlPoints.point1.getAttr('y'),
+                draggable: true
+            });
+
+  
+
+            // add text to the label
+            label.add(new Kinetic.Text({
+                text: 'Hello World!',
+                fontSize: 50,
+                lineHeight: 1.2,
+                padding: 10,
+                fill: 'green'
+            }));
+
+            var text = new Kinetic.Text({
+                x: <number>controlPoints.point1.getAttr('x'),
+                y: <number>controlPoints.point1.getAttr('y'),
+                text: 'My Text',
+                fontSize: 12,
+                fontFamily: 'Calibri',
+                textFill: 'black'
+            });
+
+            var group = new Kinetic.Group({
+                draggable: true
+            });
+
+            group.add(controlPoints.point1);
+            group.add(text);
+
+
+            layer.add(group);
 
             // var canvas = new Kinetic.Layer().getCanvas()._canvas;
             //  var circle = new Kinetic.Circle({
@@ -145,7 +211,8 @@ module SlopePhysics {
             // kineticCurve.drawCurves();
             /// var jsonString = JSON.stringify(kineticCurve);
             // console.log(jsonString);
-        }
+    */        
+}
 
         pause(): void {
             if (step == 0) {
@@ -162,6 +229,8 @@ module SlopePhysics {
 
         public createCurvedSurface(): void {
             console.log('creating curved surface');
+            curveControl.addControlPoint(100, 400);
+
 
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
@@ -240,6 +309,8 @@ module SlopePhysics {
             world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         }
 
+      
+
         //createBall(event: createjs.MouseEvent): void {
            public createBall = (): void => {
 
@@ -303,6 +374,9 @@ module SlopePhysics {
                 + d * t3;
         }
 
+
+
+
         private onResizeHandler(event: Event = null): void {
 
             this.removeBodies();
@@ -315,6 +389,8 @@ module SlopePhysics {
             stageW = window.innerWidth;;
             stageH = window.innerHeight;
             this.createCurvedSurface();
+            curveControl = new Curves.CurveControl('container', stageW, stageH);
+
             //this.createFlatSurface();
         }
 
