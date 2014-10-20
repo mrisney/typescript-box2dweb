@@ -15,24 +15,18 @@ window.addEventListener('load', () => {
 
     // set up button events
     document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
-    document.getElementById("btnPause").addEventListener("click", slopePhysics.pause);
     document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
 
+    // if the user draws, reset the line smoothing range slider
+    document.getElementById("btnDraw").addEventListener("click", function () {
+        document.getElementById("line-tolerance-range").value = "0.0";
+    });
 
-    // set up gravity slider
+    // set up gravity slider for event
     var gravity = document.getElementById("gravity-range");
     gravity.addEventListener('mouseup', function () {
         slopePhysics.changeGravity(this.value);
     });
-
-    // set up gravity slider
-    //var lineTolerance = document.getElementById("line-tolerance-range");
-    //lineTolerance.addEventListener('mouseup', function () {
-    //    slopePhysics.changeLineTolerance(this.value);
-    //});
-
-   
-
 })
 
 module SlopePhysics {
@@ -46,7 +40,8 @@ module SlopePhysics {
     export var curveControl: Curves.CurveControl;
     export var subdivisionPoint: PolygonSubdivision.Point
     export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
-    export var polylineSimplify: PolygonSubdivision.PolylineSimplify
+    export var polylineSimplify: PolygonSubdivision.PolylineSimplify;
+    export var bezierCurve: PolygonSubdivision.BezierCurve;
 
 
     var canvas: HTMLCanvasElement;
@@ -69,12 +64,12 @@ module SlopePhysics {
         public main: Main;
     }
     var controlPoints: ControlPoints;
-   
+
 
     export class Main {
         public gravity: number = 9.81;
         public canvas: HTMLCanvasElement;
-        
+
         constructor(canvas: HTMLCanvasElement) {
             this.canvas = canvas;
             context = canvas.getContext("2d");
@@ -84,6 +79,7 @@ module SlopePhysics {
             stageW = canvas.width;
             stageH = canvas.height;
             polylineSimplify = new PolygonSubdivision.PolylineSimplify();
+            bezierCurve = new PolygonSubdivision.BezierCurve;
 
             curveControl = new Curves.CurveControl('container', stageW, stageH);
             controlPoints = new ControlPoints();
@@ -107,112 +103,16 @@ module SlopePhysics {
 
             var lineToleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
             lineToleranceSlider.addEventListener("mouseup", curveControl.setLineTolerance.bind(this), false);
-            
-          
 
+            var drawButton = <HTMLInputElement>document.getElementById("btnDraw");
+            drawButton.addEventListener("click", curveControl.drawLine.bind(this), false);
 
         }
 
         public settings(): void {
-            var tolerance = lineTolerance;
-            curveControl.drawLine();
-         
-
-            // On mousedown
-            //
 
 
-            /*
-            controlPoints.startPoint.on('touchstart mousedown', function () {
-                controlPoints.main.createBall();
-            });
-
-
-
-            controlPoints.startPoint.on('dragstart dragmove', function () {
-
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-            controlPoints.point1.on('dragstart dragmove', function () {
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-            controlPoints.point2.on('dragstart dragmove', function () {
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-            controlPoints.endPoint.on('dragstart dragmove', function () {
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-
-            layer.add(controlPoints.startPoint);
-
-           // layer.add(controlPoints.point1);
-            layer.add(controlPoints.point2);
-            layer.add(controlPoints.endPoint);
-
-
-            // create label
-            var label = new Kinetic.Label({
-                x: controlPoints.point1.getAttr('x'),
-                y: controlPoints.point1.getAttr('y'),
-                draggable: true
-            });
-
-  
-
-            // add text to the label
-            label.add(new Kinetic.Text({
-                text: 'Hello World!',
-                fontSize: 50,
-                lineHeight: 1.2,
-                padding: 10,
-                fill: 'green'
-            }));
-
-            var text = new Kinetic.Text({
-                x: <number>controlPoints.point1.getAttr('x'),
-                y: <number>controlPoints.point1.getAttr('y'),
-                text: 'My Text',
-                fontSize: 12,
-                fontFamily: 'Calibri',
-                textFill: 'black'
-            });
-
-            var group = new Kinetic.Group({
-                draggable: true
-            });
-
-            group.add(controlPoints.point1);
-            group.add(text);
-
-
-            layer.add(group);
-
-            // var canvas = new Kinetic.Layer().getCanvas()._canvas;
-            //  var circle = new Kinetic.Circle({
-            //      x: stage.getWidth() / 2,
-            //      y: stage.getHeight() / 2,
-            //      radius: 25,
-            //      fill: '#666',
-            //      stroke: '#ddd',
-            //      strokeWidth: 4,
-            //      draggable: true
-            //  });
-            //layer.add(circle);
-            stage.add(layer);
-            // kineticCurve.createAnchor(10, 10);
-            // kineticCurve.drawCurves();
-            /// var jsonString = JSON.stringify(kineticCurve);
-            // console.log(jsonString);
-    */        
-}
+        }
 
         pause(): void {
             if (step == 0) {
@@ -309,7 +209,7 @@ module SlopePhysics {
             world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         }
 
-      
+
 
         //createBall(event: createjs.MouseEvent): void {
            public createBall = (): void => {

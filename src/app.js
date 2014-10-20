@@ -222,6 +222,8 @@
 var Curves;
 (function (Curves) {
     Curves.controlPointlayer;
+    Curves.controlPoints;
+
     Curves.subdivisionPoint;
     Curves.chaikinCurve;
     Curves.polylineSimplify;
@@ -231,9 +233,10 @@ var Curves;
 
     var CurveControl = (function () {
         function CurveControl(containerName, w, h) {
-            this.controlPointlayer = new Kinetic.Layer();
-            this.controlPoints = new Array();
             Curves.stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
+            Curves.controlPointlayer = new Kinetic.Layer();
+            Curves.controlPoints = new Array();
+
             Curves.chaikinCurve = new PolygonSubdivision.ChaikinCurve();
             Curves.drawPoints = new Array();
             Curves.lineTolerance = 1.0;
@@ -249,9 +252,9 @@ var Curves;
                 text: 'p1',
                 draggable: true
             });
-            this.controlPointlayer.add(controlPoint);
-            this.controlPoints.push(controlPoint);
+            Curves.controlPointlayer.add(controlPoint);
 
+            //controlPoints.push(controlPoint);
             // console.log('control points =' + JSON.stringify(this.controlPoints));
             var point1 = new PolygonSubdivision.Point(x, y);
             var point2 = new PolygonSubdivision.Point(x + 1, y + 1);
@@ -266,12 +269,7 @@ var Curves;
         };
         CurveControl.prototype.getCurvePoints = function () {
             var points = new Array();
-            for (var ctrlPoint in this.controlPoints) {
-                var point = new PolygonSubdivision.Point(ctrlPoint.getAttr('x'), ctrlPoint.getAttr('y'));
-                points.push(point);
-            }
-            var curvePoints = Curves.chaikinCurve.subdivide(points, 7);
-            return curvePoints;
+            return points;
         };
 
         CurveControl.prototype.createControlPoint = function (x, y) {
@@ -293,12 +291,13 @@ var Curves;
             var toleranceSlider = document.getElementById("line-tolerance-range");
             Curves.lineTolerance = +toleranceSlider.value;
             console.log('lineTolerance = ' + Curves.lineTolerance);
-            var simplifiedPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, Curves.lineTolerance, true);
+            Curves.controlPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, Curves.lineTolerance, true);
+            console.log('number of simplified points = ' + JSON.stringify(Curves.controlPoints.length));
 
             var simplepoints = [];
-            for (var i in simplifiedPoints) {
-                simplepoints.push(simplifiedPoints[i].x);
-                simplepoints.push(simplifiedPoints[i].y);
+            for (var i in Curves.controlPoints) {
+                simplepoints.push(Curves.controlPoints[i].x);
+                simplepoints.push(Curves.controlPoints[i].y);
             }
             Curves.stage.clear();
             var layer = new Kinetic.Layer();
@@ -312,7 +311,9 @@ var Curves;
 
             //layer.add(line1);
             var plotpoints = [];
-            var curvePoints = Curves.chaikinCurve.subdivide(simplifiedPoints, 7);
+            var curvePoints = Curves.chaikinCurve.subdivide(Curves.controlPoints, 4);
+            console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
+
             for (var j in curvePoints) {
                 plotpoints.push(curvePoints[j].x);
                 plotpoints.push(curvePoints[j].y);
@@ -330,7 +331,56 @@ var Curves;
             Curves.stage.add(layer);
         };
 
-        CurveControl.prototype.drawLine = function () {
+        CurveControl.prototype.drawBesizerCurve = function (event) {
+            /*
+            controlPoints.startPoint.on('touchstart mousedown', function () {
+            controlPoints.main.createBall();
+            });
+            
+            
+            
+            controlPoints.startPoint.on('dragstart dragmove', function () {
+            
+            controlPoints.main.removeSurfaces();
+            controlPoints.main.createCurvedSurface();
+            });
+            
+            controlPoints.point1.on('dragstart dragmove', function () {
+            controlPoints.main.removeSurfaces();
+            controlPoints.main.createCurvedSurface();
+            });
+            
+            controlPoints.point2.on('dragstart dragmove', function () {
+            controlPoints.main.removeSurfaces();
+            controlPoints.main.createCurvedSurface();
+            });
+            
+            controlPoints.endPoint.on('dragstart dragmove', function () {
+            controlPoints.main.removeSurfaces();
+            controlPoints.main.createCurvedSurface();
+            });
+            
+            
+            layer.add(controlPoints.startPoint);
+            
+            // layer.add(controlPoints.point1);
+            layer.add(controlPoints.point2);
+            layer.add(controlPoints.endPoint);
+            
+            
+            
+            //layer.add(circle);
+            stage.add(layer);
+            // kineticCurve.createAnchor(10, 10);
+            // kineticCurve.drawCurves();
+            /// var jsonString = JSON.stringify(kineticCurve);
+            // console.log(jsonString);
+            */
+        };
+
+        CurveControl.prototype.drawLine = function (event) {
+            Curves.lineTolerance = 0;
+
             Curves.polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             Curves.stage.clear();
             Curves.drawPoints.length = 0;
@@ -422,19 +472,18 @@ window.addEventListener('load', function () {
 
     // set up button events
     document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
-    document.getElementById("btnPause").addEventListener("click", slopePhysics.pause);
     document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
 
-    // set up gravity slider
+    // if the user draws, reset the line smoothing range slider
+    document.getElementById("btnDraw").addEventListener("click", function () {
+        document.getElementById("line-tolerance-range").value = "0.0";
+    });
+
+    // set up gravity slider for event
     var gravity = document.getElementById("gravity-range");
     gravity.addEventListener('mouseup', function () {
         slopePhysics.changeGravity(this.value);
     });
-    // set up gravity slider
-    //var lineTolerance = document.getElementById("line-tolerance-range");
-    //lineTolerance.addEventListener('mouseup', function () {
-    //    slopePhysics.changeLineTolerance(this.value);
-    //});
 });
 
 var SlopePhysics;
@@ -447,6 +496,7 @@ var SlopePhysics;
     SlopePhysics.subdivisionPoint;
     SlopePhysics.chaikinCurve;
     SlopePhysics.polylineSimplify;
+    SlopePhysics.bezierCurve;
 
     var canvas;
     var stage;
@@ -512,6 +562,7 @@ var SlopePhysics;
             stageW = canvas.width;
             stageH = canvas.height;
             SlopePhysics.polylineSimplify = new PolygonSubdivision.PolylineSimplify();
+            SlopePhysics.bezierCurve = new PolygonSubdivision.BezierCurve;
 
             SlopePhysics.curveControl = new Curves.CurveControl('container', stageW, stageH);
             controlPoints = new ControlPoints();
@@ -535,102 +586,11 @@ var SlopePhysics;
 
             var lineToleranceSlider = document.getElementById("line-tolerance-range");
             lineToleranceSlider.addEventListener("mouseup", SlopePhysics.curveControl.setLineTolerance.bind(this), false);
+
+            var drawButton = document.getElementById("btnDraw");
+            drawButton.addEventListener("click", SlopePhysics.curveControl.drawLine.bind(this), false);
         }
         Main.prototype.settings = function () {
-            var tolerance = lineTolerance;
-            SlopePhysics.curveControl.drawLine();
-            // On mousedown
-            //
-            /*
-            controlPoints.startPoint.on('touchstart mousedown', function () {
-            controlPoints.main.createBall();
-            });
-            
-            
-            
-            controlPoints.startPoint.on('dragstart dragmove', function () {
-            
-            controlPoints.main.removeSurfaces();
-            controlPoints.main.createCurvedSurface();
-            });
-            
-            controlPoints.point1.on('dragstart dragmove', function () {
-            controlPoints.main.removeSurfaces();
-            controlPoints.main.createCurvedSurface();
-            });
-            
-            controlPoints.point2.on('dragstart dragmove', function () {
-            controlPoints.main.removeSurfaces();
-            controlPoints.main.createCurvedSurface();
-            });
-            
-            controlPoints.endPoint.on('dragstart dragmove', function () {
-            controlPoints.main.removeSurfaces();
-            controlPoints.main.createCurvedSurface();
-            });
-            
-            
-            layer.add(controlPoints.startPoint);
-            
-            // layer.add(controlPoints.point1);
-            layer.add(controlPoints.point2);
-            layer.add(controlPoints.endPoint);
-            
-            
-            // create label
-            var label = new Kinetic.Label({
-            x: controlPoints.point1.getAttr('x'),
-            y: controlPoints.point1.getAttr('y'),
-            draggable: true
-            });
-            
-            
-            
-            // add text to the label
-            label.add(new Kinetic.Text({
-            text: 'Hello World!',
-            fontSize: 50,
-            lineHeight: 1.2,
-            padding: 10,
-            fill: 'green'
-            }));
-            
-            var text = new Kinetic.Text({
-            x: <number>controlPoints.point1.getAttr('x'),
-            y: <number>controlPoints.point1.getAttr('y'),
-            text: 'My Text',
-            fontSize: 12,
-            fontFamily: 'Calibri',
-            textFill: 'black'
-            });
-            
-            var group = new Kinetic.Group({
-            draggable: true
-            });
-            
-            group.add(controlPoints.point1);
-            group.add(text);
-            
-            
-            layer.add(group);
-            
-            // var canvas = new Kinetic.Layer().getCanvas()._canvas;
-            //  var circle = new Kinetic.Circle({
-            //      x: stage.getWidth() / 2,
-            //      y: stage.getHeight() / 2,
-            //      radius: 25,
-            //      fill: '#666',
-            //      stroke: '#ddd',
-            //      strokeWidth: 4,
-            //      draggable: true
-            //  });
-            //layer.add(circle);
-            stage.add(layer);
-            // kineticCurve.createAnchor(10, 10);
-            // kineticCurve.drawCurves();
-            /// var jsonString = JSON.stringify(kineticCurve);
-            // console.log(jsonString);
-            */
         };
 
         Main.prototype.pause = function () {
