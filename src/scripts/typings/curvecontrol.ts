@@ -70,17 +70,40 @@ module Curves {
         public setLineTolerance(event: MouseEvent): void {
             var toleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
             lineTolerance = +toleranceSlider.value;
-            console.log('lineTolerance = ' + lineTolerance);
+           
             controlPoints = polylineSimplify.simplify(drawPoints, lineTolerance, true);
             console.log('number of simplified points = ' + JSON.stringify(controlPoints.length));
+            stage.clear(); 
+            var layer = new Kinetic.Layer();
             
             var simplepoints = [];
-            for (var i in controlPoints) {
-                simplepoints.push(controlPoints[i].x);
-                simplepoints.push(controlPoints[i].y);
+            var kineticControlPoints = new Array<Kinetic.Circle>();
+
+
+            for (var i = 0; i < controlPoints.length; i++) {
+                var x = controlPoints[i].x;
+                var y = controlPoints[i].y;
+
+                simplepoints.push(x);
+                simplepoints.push(y);
+
+                var kineticControlPoint = new Kinetic.Circle({
+                    x: x,
+                    y: y,
+                    radius: 10,
+                    stroke: '#666',
+                    fill: '#ddd',
+                    strokeWidth: 2,
+                    draggable: true
+                });
+                    kineticControlPoint.on('dragstart dragmove', function () {
+                    console.log(this.getAbsolutePosition().x);
+                });
+                layer.add(kineticControlPoint);
+                kineticControlPoints.push(kineticControlPoint);
             }
-            stage.clear();
-            var layer = new Kinetic.Layer();
+            
+         
             var line1 = new Kinetic.Line({
                 points: simplepoints,
                 stroke: "red",
@@ -88,7 +111,7 @@ module Curves {
                 lineCap: 'round',
                 lineJoin: 'round'
             });
-            //layer.add(line1);
+            layer.add(line1);
             var plotpoints = [];
             var curvePoints = chaikinCurve.subdivide(controlPoints, 4);
             console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
