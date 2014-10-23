@@ -8,7 +8,6 @@
         point: Point;
         weight: number;
     }
-
     export class Point implements IPoint {
         constructor(public x: number, public y: number) {
         }
@@ -17,12 +16,11 @@
         constructor(public point: Point, public weight: number) {
         }
     }
-
     export class ChaikinCurve {
         constructor() {
         }
 
-        public subdivide(points: Array<Point>, subdivisions: number): Array<Point> {
+        public subdivide(points: Array<Point>, epsilon: number): Array<Point> {
 
             do {
                 var numOfPoints: number = points.length;
@@ -61,7 +59,7 @@
                 for (var l = 0; l < numOfPoints; ++l)
                     points.shift();
 
-            } while (--subdivisions > 0);
+            } while (--epsilon > 0);
             return points;
         }
 
@@ -88,29 +86,27 @@
         }
     }
 
-
     export class BezierCurve {
         constructor() {
         }
 
-        public subdivide(controlPoints: Array<Point>, subdivisions: number): Array<Point> {
+        public subdivide(controlPoints: Array<Point>, epsilon: number): Array<Point> {
             var results: Array<Point>;
-            subdivisions = subdivisions / 100;
+            epsilon = epsilon / 100;
             var startPoint: Point = controlPoints[0];
             var point1: Point = controlPoints[1];
             var point2: Point = controlPoints[2];
             var endPoint: Point = controlPoints[3];
 
-            for (var i = 0; i < subdivisions; i += 0.01) {
+            for (var i = 0; i < epsilon; i += 0.01) {
                 var ptOnCurve: Point = this.getCubicBezierPointatIndex(startPoint, point1, point2, endPoint, i);
                 results.push(ptOnCurve);
             }
             return results;
-
         }
-        public getCubicBezierPointatIndex(startPt: Point, controlPt1: Point, controlPt2: Point, endPt: Point, i: number): Point {
-            var x: number = this.CubicN(i, startPt.x, controlPt1.x, controlPt2.x, endPt.x);
-            var y: number = this.CubicN(i, startPt.y, controlPt1.y, controlPt2.y, endPt.y);
+        public getCubicBezierPointatIndex(startPt: Point, controlPt1: Point, controlPt2: Point, endPt: Point, T: number): Point {
+            var x: number = this.CubicN(T, startPt.x, controlPt1.x, controlPt2.x, endPt.x);
+            var y: number = this.CubicN(T, startPt.y, controlPt1.y, controlPt2.y, endPt.y);
             return new Point(x, y);
         }
 
@@ -122,11 +118,9 @@
                 + (c * 3 - c * 3 * T) * t2
                 + d * t3;
         }
-
     }
 
     export class PolylineSimplify {
-
 
         // square distance between 2 points
         private getSqDist(p1: Point, p2: Point): number {
@@ -137,7 +131,6 @@
 
         // square distance from a point to a segment
         private getSqSegDist(p: Point, p1: Point, p2: Point): number {
-
             var x = p1.x,
                 y = p1.y,
                 dx = p2.x - x,
@@ -162,7 +155,7 @@
         }
 
         // basic distance-based simplification
-        public simplifyRadialDist(points: Array<Point>, sqTolerance: number): Array<Point> {
+        public simplifyRadialDist(points: Array<Point>, epsilon: number): Array<Point> {
 
             var prevPoint = points[0],
                 newPoints = [prevPoint],
@@ -171,7 +164,7 @@
             for (var i = 1, len = points.length; i < len; i++) {
                 point = points[i];
 
-                if (this.getSqDist(point, prevPoint) > sqTolerance) {
+                if (this.getSqDist(point, prevPoint) > epsilon) {
                     newPoints.push(point);
                     prevPoint = point;
                 }
@@ -182,8 +175,8 @@
             return newPoints;
         }
 
-        // simplification using optimized Douglas - Peucker algorithm with recursion elimination
-        public simplifyDouglasPeucker(points: Array<Point>, sqTolerance: number) {
+        // classic simplification Douglas-Peucker algorithm with recursion elimination
+        public simplifyDouglasPeucker(points: Array<Point>, epsilon: number) {
 
             var len = points.length,
                 MarkerArray: Uint8Array,
@@ -197,19 +190,16 @@
             markers[first] = markers[last] = 1;
 
             while (last) {
-
                 maxSqDist = 0;
-
                 for (i = first + 1; i < last; i++) {
                     sqDist = this.getSqSegDist(points[i], points[first], points[last]);
-
                     if (sqDist > maxSqDist) {
                         index = i;
                         maxSqDist = sqDist;
                     }
                 }
 
-                if (maxSqDist > sqTolerance) {
+                if (maxSqDist > epsilon) {
                     markers[index] = 1;
                     stack.push(first, index, index, last);
                 }

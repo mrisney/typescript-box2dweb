@@ -16,11 +16,10 @@
         return WeightedPoint;
     })();
     PolygonSubdivision.WeightedPoint = WeightedPoint;
-
     var ChaikinCurve = (function () {
         function ChaikinCurve() {
         }
-        ChaikinCurve.prototype.subdivide = function (points, subdivisions) {
+        ChaikinCurve.prototype.subdivide = function (points, epsilon) {
             do {
                 var numOfPoints = points.length;
 
@@ -60,7 +59,7 @@
 
                 for (var l = 0; l < numOfPoints; ++l)
                     points.shift();
-            } while(--subdivisions > 0);
+            } while(--epsilon > 0);
             return points;
         };
 
@@ -92,23 +91,23 @@
     var BezierCurve = (function () {
         function BezierCurve() {
         }
-        BezierCurve.prototype.subdivide = function (controlPoints, subdivisions) {
+        BezierCurve.prototype.subdivide = function (controlPoints, epsilon) {
             var results;
-            subdivisions = subdivisions / 100;
+            epsilon = epsilon / 100;
             var startPoint = controlPoints[0];
             var point1 = controlPoints[1];
             var point2 = controlPoints[2];
             var endPoint = controlPoints[3];
 
-            for (var i = 0; i < subdivisions; i += 0.01) {
+            for (var i = 0; i < epsilon; i += 0.01) {
                 var ptOnCurve = this.getCubicBezierPointatIndex(startPoint, point1, point2, endPoint, i);
                 results.push(ptOnCurve);
             }
             return results;
         };
-        BezierCurve.prototype.getCubicBezierPointatIndex = function (startPt, controlPt1, controlPt2, endPt, i) {
-            var x = this.CubicN(i, startPt.x, controlPt1.x, controlPt2.x, endPt.x);
-            var y = this.CubicN(i, startPt.y, controlPt1.y, controlPt2.y, endPt.y);
+        BezierCurve.prototype.getCubicBezierPointatIndex = function (startPt, controlPt1, controlPt2, endPt, T) {
+            var x = this.CubicN(T, startPt.x, controlPt1.x, controlPt2.x, endPt.x);
+            var y = this.CubicN(T, startPt.y, controlPt1.y, controlPt2.y, endPt.y);
             return new Point(x, y);
         };
 
@@ -152,13 +151,13 @@
         };
 
         // basic distance-based simplification
-        PolylineSimplify.prototype.simplifyRadialDist = function (points, sqTolerance) {
+        PolylineSimplify.prototype.simplifyRadialDist = function (points, epsilon) {
             var prevPoint = points[0], newPoints = [prevPoint], point;
 
             for (var i = 1, len = points.length; i < len; i++) {
                 point = points[i];
 
-                if (this.getSqDist(point, prevPoint) > sqTolerance) {
+                if (this.getSqDist(point, prevPoint) > epsilon) {
                     newPoints.push(point);
                     prevPoint = point;
                 }
@@ -170,25 +169,23 @@
             return newPoints;
         };
 
-        // simplification using optimized Douglas - Peucker algorithm with recursion elimination
-        PolylineSimplify.prototype.simplifyDouglasPeucker = function (points, sqTolerance) {
+        // classic simplification Douglas-Peucker algorithm with recursion elimination
+        PolylineSimplify.prototype.simplifyDouglasPeucker = function (points, epsilon) {
             var len = points.length, MarkerArray, markers = new Uint8Array(len), first = 0, last = len - 1, stack = [], newPoints = [], i, maxSqDist, sqDist, index;
 
             markers[first] = markers[last] = 1;
 
             while (last) {
                 maxSqDist = 0;
-
                 for (i = first + 1; i < last; i++) {
                     sqDist = this.getSqSegDist(points[i], points[first], points[last]);
-
                     if (sqDist > maxSqDist) {
                         index = i;
                         maxSqDist = sqDist;
                     }
                 }
 
-                if (maxSqDist > sqTolerance) {
+                if (maxSqDist > epsilon) {
                     markers[index] = 1;
                     stack.push(first, index, index, last);
                 }
