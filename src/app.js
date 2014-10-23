@@ -221,25 +221,32 @@
 /// <reference path="./polygonsubdivision.ts" />
 var Curves;
 (function (Curves) {
-    Curves.controlPointlayer;
-    Curves.controlPoints;
+    Curves.controlPointLayer;
+    Curves.controlLineLayer;
+    Curves.simplifiedPoints;
+    Curves.kineticControlPoints;
 
     Curves.subdivisionPoint;
     Curves.chaikinCurve;
     Curves.polylineSimplify;
     Curves.stage;
     Curves.lineTolerance;
+
+    Curves.curveControl;
     Curves.drawPoints;
 
     var CurveControl = (function () {
         function CurveControl(containerName, w, h) {
             Curves.stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
-            Curves.controlPointlayer = new Kinetic.Layer();
-            Curves.controlPoints = new Array();
+            Curves.controlPointLayer = new Kinetic.Layer();
+            Curves.controlLineLayer = new Kinetic.Layer();
+            Curves.simplifiedPoints = new Array();
+            Curves.kineticControlPoints = new Array();
 
             Curves.chaikinCurve = new PolygonSubdivision.ChaikinCurve();
             Curves.drawPoints = new Array();
             Curves.lineTolerance = 1.0;
+            Curves.curveControl = this;
         }
         CurveControl.prototype.addControlPoint = function (x, y) {
             var controlPoint = new Kinetic.Circle({
@@ -252,7 +259,7 @@ var Curves;
                 text: 'p1',
                 draggable: true
             });
-            Curves.controlPointlayer.add(controlPoint);
+            Curves.controlPointLayer.add(controlPoint);
 
             //controlPoints.push(controlPoint);
             // console.log('control points =' + JSON.stringify(this.controlPoints));
@@ -290,21 +297,20 @@ var Curves;
         CurveControl.prototype.setLineTolerance = function (event) {
             var toleranceSlider = document.getElementById("line-tolerance-range");
             Curves.lineTolerance = +toleranceSlider.value;
+            Curves.simplifiedPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, Curves.lineTolerance, true);
 
-            Curves.controlPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, Curves.lineTolerance, true);
-            console.log('number of simplified points = ' + JSON.stringify(Curves.controlPoints.length));
             Curves.stage.clear();
-            var layer = new Kinetic.Layer();
+            Curves.controlLineLayer.removeChildren();
+            Curves.controlPointLayer.removeChildren();
+            var kineticLinePoints = [];
+            Curves.kineticControlPoints.length = 0;
 
-            var simplepoints = [];
-            var kineticControlPoints = new Array();
+            for (var i = 0; i < Curves.simplifiedPoints.length; i++) {
+                var x = Curves.simplifiedPoints[i].x;
+                var y = Curves.simplifiedPoints[i].y;
 
-            for (var i = 0; i < Curves.controlPoints.length; i++) {
-                var x = Curves.controlPoints[i].x;
-                var y = Curves.controlPoints[i].y;
-
-                simplepoints.push(x);
-                simplepoints.push(y);
+                kineticLinePoints.push(x);
+                kineticLinePoints.push(y);
 
                 var kineticControlPoint = new Kinetic.Circle({
                     x: x,
@@ -316,39 +322,86 @@ var Curves;
                     draggable: true
                 });
                 kineticControlPoint.on('dragstart dragmove', function () {
-                    console.log(this.getAbsolutePosition().x);
+                    Curves.curveControl.updateControlLines();
                 });
-                layer.add(kineticControlPoint);
-                kineticControlPoints.push(kineticControlPoint);
+                Curves.kineticControlPoints.push(kineticControlPoint);
+                Curves.controlPointLayer.add(kineticControlPoint);
             }
 
-            var line1 = new Kinetic.Line({
-                points: simplepoints,
+            var redLine = new Kinetic.Line({
+                points: kineticLinePoints,
                 stroke: "red",
                 strokeWidth: 1,
                 lineCap: 'round',
                 lineJoin: 'round'
             });
-            layer.add(line1);
+            Curves.controlLineLayer.add(redLine);
             var plotpoints = [];
-            var curvePoints = Curves.chaikinCurve.subdivide(Curves.controlPoints, 4);
+            var curvePoints = Curves.chaikinCurve.subdivide(Curves.simplifiedPoints, 4);
             console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
 
             for (var j in curvePoints) {
                 plotpoints.push(curvePoints[j].x);
                 plotpoints.push(curvePoints[j].y);
             }
-            var line2 = new Kinetic.Line({
+            var blueLine = new Kinetic.Line({
                 points: plotpoints,
-                stroke: "blue",
+                stroke: "#ADD8E6",
                 strokeWidth: 1,
                 lineCap: 'round',
                 lineJoin: 'round'
             });
 
-            layer.add(line2);
-            layer.drawScene();
-            Curves.stage.add(layer);
+            Curves.controlLineLayer.add(blueLine);
+            Curves.controlLineLayer.drawScene();
+            Curves.controlPointLayer.drawScene();
+            Curves.stage.add(Curves.controlPointLayer);
+            Curves.stage.add(Curves.controlLineLayer);
+        };
+
+        CurveControl.prototype.updateControlLines = function () {
+            Curves.controlLineLayer.removeChildren();
+            Curves.controlPointLayer.drawScene();
+            var simplifiedPoints = new Array();
+
+            var kineticLinePoints = [];
+            for (var i in Curves.kineticControlPoints) {
+                var x = Curves.kineticControlPoints[i].getAbsolutePosition().x;
+                var y = Curves.kineticControlPoints[i].getAbsolutePosition().y;
+
+                var point = new PolygonSubdivision.Point(x, y);
+                simplifiedPoints.push(point);
+                kineticLinePoints.push(x);
+                kineticLinePoints.push(y);
+            }
+
+            var redLine = new Kinetic.Line({
+                points: kineticLinePoints,
+                stroke: "red",
+                strokeWidth: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            });
+            Curves.controlLineLayer.add(redLine);
+            var plotpoints = [];
+            var curvePoints = Curves.chaikinCurve.subdivide(simplifiedPoints, 7);
+            console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
+
+            for (var j in curvePoints) {
+                plotpoints.push(curvePoints[j].x);
+                plotpoints.push(curvePoints[j].y);
+            }
+            var blueLine = new Kinetic.Line({
+                points: plotpoints,
+                stroke: "#ADD8E6",
+                strokeWidth: 1,
+                lineCap: 'round',
+                lineJoin: 'round'
+            });
+
+            Curves.controlLineLayer.add(blueLine);
+            Curves.controlLineLayer.drawScene();
+            //stage.add(controlLineLayer);
         };
 
         CurveControl.prototype.drawBesizerCurve = function (event) {
