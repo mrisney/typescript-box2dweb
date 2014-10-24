@@ -5,17 +5,18 @@ module Curves {
     export var controlLineLayer: Kinetic.Layer;
     export var simplifiedPoints: Array<PolygonSubdivision.Point>;
     export var kineticControlPoints: Array<Kinetic.Circle>;
-        
+    export var stage: Kinetic.Stage;
+    export var lineTolerance: number;
+    export var drawPoints: Array<PolygonSubdivision.Point>;
+     
     export var subdivisionPoint: PolygonSubdivision.Point
     export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
     export var polylineSimplify: PolygonSubdivision.PolylineSimplify
-    export var stage: Kinetic.Stage;
-    export var lineTolerance: number;
 
     export var curveControl: Curves.CurveControl;
-    export var drawPoints: Array<PolygonSubdivision.Point>;
 
     export class CurveControl {
+        public curvePoints: Array<PolygonSubdivision.Point>;
         constructor(containerName: String, w: number, h: number) {
             stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
             controlPointLayer = new Kinetic.Layer();
@@ -24,7 +25,9 @@ module Curves {
             kineticControlPoints = new Array<Kinetic.Circle>();
 
             chaikinCurve = new PolygonSubdivision.ChaikinCurve();
+            polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             drawPoints = new Array<PolygonSubdivision.Point>();
+            this.curvePoints = new Array<PolygonSubdivision.Point>();
             lineTolerance = 1.0;
             curveControl = this;
         }
@@ -40,8 +43,7 @@ module Curves {
                 draggable: true
             });
             controlPointLayer.add(controlPoint);
-            //controlPoints.push(controlPoint);
-            // console.log('control points =' + JSON.stringify(this.controlPoints));
+
             var point1: PolygonSubdivision.Point = new PolygonSubdivision.Point(x, y);
             var point2: PolygonSubdivision.Point = new PolygonSubdivision.Point(x + 1, y + 1);
             var point3: PolygonSubdivision.Point = new PolygonSubdivision.Point(x + 2, y + 2);
@@ -51,12 +53,10 @@ module Curves {
             points.push(point3);
 
             var curvePoints: Array<PolygonSubdivision.Point> = chaikinCurve.subdivide(points, 7);
-            //console.log(curvePoints);
 
         }
         public getCurvePoints(): Array<PolygonSubdivision.Point> {
-            var points = new Array<PolygonSubdivision.Point>();
-            return points;
+            return this.curvePoints;
         }
 
         public createControlPoint(x: number, y: number): Kinetic.Circle {
@@ -78,7 +78,7 @@ module Curves {
             var toleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
             lineTolerance = +toleranceSlider.value;
             simplifiedPoints = polylineSimplify.simplify(drawPoints, lineTolerance, true);
-
+            this.curvePoints = simplifiedPoints; 
             stage.clear();
             controlLineLayer.removeChildren();
             controlPointLayer.removeChildren();
@@ -108,7 +108,6 @@ module Curves {
                 controlPointLayer.add(kineticControlPoint);
             }
 
-
             var redLine = new Kinetic.Line({
                 points: kineticLinePoints,
                 stroke: "red",
@@ -118,8 +117,7 @@ module Curves {
             });
             controlLineLayer.add(redLine);
             var plotpoints = [];
-            var curvePoints = chaikinCurve.subdivide(simplifiedPoints, 4);
-            console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
+            var curvePoints = chaikinCurve.subdivide(simplifiedPoints, 7);
 
             for (var j in curvePoints) {
                 plotpoints.push(curvePoints[j].x);
@@ -141,7 +139,7 @@ module Curves {
         }
 
         public updateControlLines(): void {
-            
+
             controlLineLayer.removeChildren();
             controlPointLayer.drawScene();
             var simplifiedPoints = new Array<PolygonSubdivision.Point>();
@@ -159,7 +157,7 @@ module Curves {
 
             var redLine = new Kinetic.Line({
                 points: kineticLinePoints,
-                stroke: "red",
+                stroke: 'red',
                 strokeWidth: 1,
                 lineCap: 'round',
                 lineJoin: 'round'
@@ -168,6 +166,7 @@ module Curves {
             var plotpoints = [];
             var curvePoints = chaikinCurve.subdivide(simplifiedPoints, 7);
             console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
+            this.curvePoints = curvePoints; 
 
             for (var j in curvePoints) {
                 plotpoints.push(curvePoints[j].x);
@@ -183,9 +182,7 @@ module Curves {
 
             controlLineLayer.add(blueLine);
             controlLineLayer.drawScene();
-            //stage.add(controlLineLayer);
-
-        } 
+        }
 
         public drawBesizerCurve(event: MouseEvent) {
             /*
@@ -239,7 +236,6 @@ module Curves {
         public drawLine(event: MouseEvent): void {
             lineTolerance = 0;
 
-            polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             stage.clear();
             drawPoints.length = 0;
             var layer = new Kinetic.Layer();
@@ -268,7 +264,7 @@ module Curves {
                 isMouseDown = true;
                 console.log('mouse down');
                 tempPoints = [];
-                drawPoints.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
+                //drawPoints.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
                 points.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
                 tempPoints = [];
                 tempPoints.push(stage.getPointerPosition().x);

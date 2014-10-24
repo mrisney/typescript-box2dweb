@@ -222,15 +222,15 @@ var Curves;
     Curves.controlLineLayer;
     Curves.simplifiedPoints;
     Curves.kineticControlPoints;
+    Curves.stage;
+    Curves.lineTolerance;
+    Curves.drawPoints;
 
     Curves.subdivisionPoint;
     Curves.chaikinCurve;
     Curves.polylineSimplify;
-    Curves.stage;
-    Curves.lineTolerance;
 
     Curves.curveControl;
-    Curves.drawPoints;
 
     var CurveControl = (function () {
         function CurveControl(containerName, w, h) {
@@ -241,7 +241,9 @@ var Curves;
             Curves.kineticControlPoints = new Array();
 
             Curves.chaikinCurve = new PolygonSubdivision.ChaikinCurve();
+            Curves.polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             Curves.drawPoints = new Array();
+            this.curvePoints = new Array();
             Curves.lineTolerance = 1.0;
             Curves.curveControl = this;
         }
@@ -258,8 +260,6 @@ var Curves;
             });
             Curves.controlPointLayer.add(controlPoint);
 
-            //controlPoints.push(controlPoint);
-            // console.log('control points =' + JSON.stringify(this.controlPoints));
             var point1 = new PolygonSubdivision.Point(x, y);
             var point2 = new PolygonSubdivision.Point(x + 1, y + 1);
             var point3 = new PolygonSubdivision.Point(x + 2, y + 2);
@@ -269,11 +269,9 @@ var Curves;
             points.push(point3);
 
             var curvePoints = Curves.chaikinCurve.subdivide(points, 7);
-            //console.log(curvePoints);
         };
         CurveControl.prototype.getCurvePoints = function () {
-            var points = new Array();
-            return points;
+            return this.curvePoints;
         };
 
         CurveControl.prototype.createControlPoint = function (x, y) {
@@ -295,7 +293,7 @@ var Curves;
             var toleranceSlider = document.getElementById("line-tolerance-range");
             Curves.lineTolerance = +toleranceSlider.value;
             Curves.simplifiedPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, Curves.lineTolerance, true);
-
+            this.curvePoints = Curves.simplifiedPoints;
             Curves.stage.clear();
             Curves.controlLineLayer.removeChildren();
             Curves.controlPointLayer.removeChildren();
@@ -334,8 +332,7 @@ var Curves;
             });
             Curves.controlLineLayer.add(redLine);
             var plotpoints = [];
-            var curvePoints = Curves.chaikinCurve.subdivide(Curves.simplifiedPoints, 4);
-            console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
+            var curvePoints = Curves.chaikinCurve.subdivide(Curves.simplifiedPoints, 7);
 
             for (var j in curvePoints) {
                 plotpoints.push(curvePoints[j].x);
@@ -374,7 +371,7 @@ var Curves;
 
             var redLine = new Kinetic.Line({
                 points: kineticLinePoints,
-                stroke: "red",
+                stroke: 'red',
                 strokeWidth: 1,
                 lineCap: 'round',
                 lineJoin: 'round'
@@ -383,6 +380,7 @@ var Curves;
             var plotpoints = [];
             var curvePoints = Curves.chaikinCurve.subdivide(simplifiedPoints, 7);
             console.log('number of curve Points = ' + JSON.stringify(curvePoints.length));
+            this.curvePoints = curvePoints;
 
             for (var j in curvePoints) {
                 plotpoints.push(curvePoints[j].x);
@@ -398,7 +396,6 @@ var Curves;
 
             Curves.controlLineLayer.add(blueLine);
             Curves.controlLineLayer.drawScene();
-            //stage.add(controlLineLayer);
         };
 
         CurveControl.prototype.drawBesizerCurve = function (event) {
@@ -451,7 +448,6 @@ var Curves;
         CurveControl.prototype.drawLine = function (event) {
             Curves.lineTolerance = 0;
 
-            Curves.polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             Curves.stage.clear();
             Curves.drawPoints.length = 0;
             var layer = new Kinetic.Layer();
@@ -483,7 +479,8 @@ var Curves;
                 isMouseDown = true;
                 console.log('mouse down');
                 tempPoints = [];
-                Curves.drawPoints.push(new PolygonSubdivision.Point(Curves.stage.getPointerPosition().x, Curves.stage.getPointerPosition().y));
+
+                //drawPoints.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
                 points.push(new PolygonSubdivision.Point(Curves.stage.getPointerPosition().x, Curves.stage.getPointerPosition().y));
                 tempPoints = [];
                 tempPoints.push(Curves.stage.getPointerPosition().x);
@@ -594,6 +591,10 @@ var SlopePhysics;
             this.gravity = 9.81;
             //createBall(event: createjs.MouseEvent): void {
             this.createBall = function () {
+                console.log('curve control points = ' + SlopePhysics.curveControl.getCurvePoints().length);
+                _this.removeSurfaces();
+                _this.createCurvedSurfaces(SlopePhysics.curveControl.getCurvePoints());
+
                 //console.log('clicked at ' + event.stageX + ',' + event.stageY);
                 _this.removeBodies();
 
@@ -750,6 +751,44 @@ var SlopePhysics;
         Main.prototype.changeGravity = function (value) {
             this.gravity = value * 10;
             SlopePhysics.world.SetGravity(new b2m.b2Vec2(0, this.gravity));
+        };
+
+        Main.prototype.createCurvedSurfaces = function (points) {
+            console.log('creating curved surface with ' + points.length + ' number of points');
+
+            // create surface defintion
+            var surfaceDef = new b2d.b2BodyDef();
+            surfaceDef.type = b2d.b2Body.b2_staticBody;
+            surfaceDef.userData = 'curved-surface';
+
+            // create surface fixture defintion
+            var surfaceFixtureDef = new b2d.b2FixtureDef();
+            surfaceFixtureDef.density = 1;
+            surfaceFixtureDef.friction = 0.5;
+
+            var shape = new b2s.b2PolygonShape();
+
+            var ptArray = new Array();
+            var x1, y1, x2, y2;
+
+            var curvedSurface = SlopePhysics.world.CreateBody(surfaceDef);
+            var ptOnCurve = points[0];
+
+            x1 = this.p2m(ptOnCurve.x);
+            y1 = this.p2m(ptOnCurve.y);
+
+            for (var i = 1; i < points.length; i++) {
+                var pt = points[i];
+                x2 = this.p2m(pt.x);
+                y2 = this.p2m(pt.y);
+                var edgeShape = new b2s.b2PolygonShape();
+                edgeShape.SetAsEdge(new b2m.b2Vec2(x1, y1), new b2m.b2Vec2(x2, y2));
+                curvedSurface.CreateFixture2(edgeShape);
+                x1 = x2;
+                y1 = y2;
+            }
+
+            surfaces.push(curvedSurface);
         };
 
         Main.prototype.p2m = function (x) {

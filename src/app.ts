@@ -131,7 +131,6 @@ module SlopePhysics {
             console.log('creating curved surface');
             curveControl.addControlPoint(100, 400);
 
-
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
@@ -213,6 +212,9 @@ module SlopePhysics {
 
         //createBall(event: createjs.MouseEvent): void {
            public createBall = (): void => {
+           console.log('curve control points = ' + curveControl.getCurvePoints().length);
+               this.removeSurfaces();
+               this.createCurvedSurfaces(curveControl.getCurvePoints());
 
             //console.log('clicked at ' + event.stageX + ',' + event.stageY);
             this.removeBodies();
@@ -249,6 +251,46 @@ module SlopePhysics {
 
 
             bodies.push(body);
+           }
+
+        public createCurvedSurfaces(points : Array<PolygonSubdivision.Point>): void {
+            console.log('creating curved surface with ' + points.length +' number of points');
+           
+
+            // create surface defintion
+            var surfaceDef = new b2d.b2BodyDef();
+            surfaceDef.type = b2d.b2Body.b2_staticBody;
+            surfaceDef.userData = 'curved-surface'
+
+            // create surface fixture defintion
+            var surfaceFixtureDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
+            surfaceFixtureDef.density = 1;
+            surfaceFixtureDef.friction = 0.5;
+
+            var shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
+
+            var ptArray = new Array();
+            var x1, y1, x2, y2;
+
+            var curvedSurface = world.CreateBody(surfaceDef);
+            var ptOnCurve = points[0];
+
+            x1 = this.p2m(ptOnCurve.x);
+            y1 = this.p2m(ptOnCurve.y);
+
+        
+            for (var i = 1; i < points.length; i++) {
+                var pt: PolygonSubdivision.Point = points[i];
+                x2 = this.p2m(pt.x);
+                y2 = this.p2m(pt.y);
+                var edgeShape = new b2s.b2PolygonShape();
+                edgeShape.SetAsEdge(new b2m.b2Vec2(x1, y1), new b2m.b2Vec2(x2, y2));
+                curvedSurface.CreateFixture2(edgeShape);
+                x1 = x2;
+                y1 = y2;
+            }
+
+            surfaces.push(curvedSurface);
         }
 
         private p2m(x): number {
