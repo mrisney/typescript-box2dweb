@@ -11,12 +11,14 @@ module Curves {
      
     export var subdivisionPoint: PolygonSubdivision.Point
     export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
+    export var bezierCurve: PolygonSubdivision.BezierCurve;
     export var polylineSimplify: PolygonSubdivision.PolylineSimplify
 
     export var curveControl: Curves.CurveControl;
 
     export class CurveControl {
         public curvePoints: Array<PolygonSubdivision.Point>;
+        public controlPoints: Array<PolygonSubdivision.Point>;
         constructor(containerName: String, w: number, h: number) {
             stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
             controlPointLayer = new Kinetic.Layer();
@@ -25,36 +27,15 @@ module Curves {
             kineticControlPoints = new Array<Kinetic.Circle>();
 
             chaikinCurve = new PolygonSubdivision.ChaikinCurve();
+            bezierCurve = new PolygonSubdivision.BezierCurve();
             polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             drawPoints = new Array<PolygonSubdivision.Point>();
             this.curvePoints = new Array<PolygonSubdivision.Point>();
+            this.controlPoints = new Array<PolygonSubdivision.Point>();
             lineTolerance = 1.0;
             curveControl = this;
         }
-        public addControlPoint(x: number, y: number): void {
-            var controlPoint = new Kinetic.Circle({
-                x: x,
-                y: y,
-                radius: 10,
-                stroke: '#666',
-                fill: '#ddd',
-                strokeWidth: 2,
-                text: 'p1',
-                draggable: true
-            });
-            controlPointLayer.add(controlPoint);
-
-            var point1: PolygonSubdivision.Point = new PolygonSubdivision.Point(x, y);
-            var point2: PolygonSubdivision.Point = new PolygonSubdivision.Point(x + 1, y + 1);
-            var point3: PolygonSubdivision.Point = new PolygonSubdivision.Point(x + 2, y + 2);
-            var points: Array<PolygonSubdivision.Point> = new Array<PolygonSubdivision.Point>();
-            points.push(point1);
-            points.push(point2);
-            points.push(point3);
-
-            var curvePoints: Array<PolygonSubdivision.Point> = chaikinCurve.subdivide(points, 7);
-
-        }
+      
         public getCurvePoints(): Array<PolygonSubdivision.Point> {
             return this.curvePoints;
         }
@@ -184,53 +165,13 @@ module Curves {
             controlLineLayer.drawScene();
         }
 
-        public drawBesizerCurve(event: MouseEvent) {
-            /*
-            controlPoints.startPoint.on('touchstart mousedown', function () {
-                controlPoints.main.createBall();
-            });
+        //public drawBesizerCurve(event: MouseEvent) {
 
 
-
-            controlPoints.startPoint.on('dragstart dragmove', function () {
-
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-            controlPoints.point1.on('dragstart dragmove', function () {
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-            controlPoints.point2.on('dragstart dragmove', function () {
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-            controlPoints.endPoint.on('dragstart dragmove', function () {
-                controlPoints.main.removeSurfaces();
-                controlPoints.main.createCurvedSurface();
-            });
-
-
-            layer.add(controlPoints.startPoint);
-
-            // layer.add(controlPoints.point1);
-            layer.add(controlPoints.point2);
-            layer.add(controlPoints.endPoint);
-
-
-
-            //layer.add(circle);
-            stage.add(layer);
-            // kineticCurve.createAnchor(10, 10);
-            // kineticCurve.drawCurves();
-            /// var jsonString = JSON.stringify(kineticCurve);
-            // console.log(jsonString);
-    */
-
-
+        public drawBesizerCurve(controlPoints: Array<PolygonSubdivision.Point>): Array<PolygonSubdivision.Point> {
+            this.controlPoints = controlPoints;
+            var curvePoints: Array<PolygonSubdivision.Point> = bezierCurve.subdivide(controlPoints, 1);
+            return curvePoints;
         }
 
         public drawLine(event: MouseEvent): void {

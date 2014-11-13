@@ -38,3 +38,11 @@ input[type='range']::-moz-range-thumb {
     height: 20px;
     width: 20px;
 }
+
+
+.icon-bezier-curve { 
+  background-image: url("bezier.png");
+  background-position: center center; 
+  height: 14px; 
+  width: 14px;
+}

@@ -91,8 +91,7 @@
         }
 
         public subdivide(controlPoints: Array<Point>, epsilon: number): Array<Point> {
-            var results: Array<Point>;
-            epsilon = epsilon / 100;
+            var results = new Array<Point>();
             var startPoint: Point = controlPoints[0];
             var point1: Point = controlPoints[1];
             var point2: Point = controlPoints[2];

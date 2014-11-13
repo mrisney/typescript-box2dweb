@@ -1,9 +1,14 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2013 for Web
 VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "box2d", "..\typescript-box2dweb\src\box2d.csproj", "{363D9315-F225-421F-A5A3-AA9D57E15941}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "box2d", "src\box2d.csproj", "{363D9315-F225-421F-A5A3-AA9D57E15941}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0FF88376-EE00-4DD5-97ED-3D467ED28689}"
+	ProjectSection(SolutionItems) = preProject
+		WE-Palette.css = WE-Palette.css
+		WebEssentials-Settings.json = WebEssentials-Settings.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

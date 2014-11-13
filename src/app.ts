@@ -8,7 +8,6 @@
 /// <reference path="./scripts/typings/curvecontrol.ts" />
 /// <reference path="./scripts/typings/polygonsubdivision.ts" />
 
-
 window.addEventListener('load', () => {
     var canvas = <HTMLCanvasElement> document.getElementById('surface');
     var slopePhysics = new SlopePhysics.Main(canvas);
@@ -19,7 +18,7 @@ window.addEventListener('load', () => {
 
     // if the user draws, reset the line smoothing range slider
     document.getElementById("btnDraw").addEventListener("click", function () {
-        document.getElementById("line-tolerance-range").value = "0.0";
+        (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
     });
 
     // set up gravity slider for event
@@ -82,17 +81,11 @@ module SlopePhysics {
             bezierCurve = new PolygonSubdivision.BezierCurve;
 
             curveControl = new Curves.CurveControl('container', stageW, stageH);
-            controlPoints = new ControlPoints();
-            controlPoints.startPoint = curveControl.createControlPoint(10, 0);
-            controlPoints.point1 = curveControl.createControlPoint(250, 800);
-            controlPoints.point2 = curveControl.createControlPoint(1200, 800);
-            controlPoints.endPoint = curveControl.createControlPoint(1175, 400);
-            controlPoints.main = this;
 
             world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
             stage.addEventListener('stagemousedown', this.createBall);
-            this.createCurvedSurface();
-            //this.createFlatSurface();
+            this.createSurfaces();
+           
 
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
@@ -127,49 +120,22 @@ module SlopePhysics {
 
         }
 
-        public createCurvedSurface(): void {
+        public createSurfaces(): void {
             console.log('creating curved surface');
-            curveControl.addControlPoint(100, 400);
+            var controlPts = new Array<PolygonSubdivision.Point>();
+            controlPts[0] = new PolygonSubdivision.Point(10, 200);
+            controlPts[1] = new PolygonSubdivision.Point(250, 800);
+            controlPts[2] = new PolygonSubdivision.Point(1200, 800);
+            controlPts[3] = new PolygonSubdivision.Point(1175, 400);
 
-            // create surface defintion
-            var surfaceDef = new b2d.b2BodyDef();
-            surfaceDef.type = b2d.b2Body.b2_staticBody;
-            surfaceDef.userData = 'curved-surface'
-
-            // create surface fixture defintion
-            var surfaceFixtureDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
-            surfaceFixtureDef.density = 1;
-            surfaceFixtureDef.friction = 0.5;
-
-            var shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
-
-            var ptArray = new Array();
-            var x1, y1, x2, y2;
-
-            var curvedSurface = world.CreateBody(surfaceDef);
-
-
-            var ptOnCurve = this.getCubicBezierXYatT(controlPoints.startPoint, controlPoints.point1, controlPoints.point2, controlPoints.endPoint, 0);
-
-            x1 = this.p2m(ptOnCurve.x);
-            y1 = this.p2m(ptOnCurve.y);
-            for (var i = 0; i < 1.00; i += 0.01) {
-                ptOnCurve = this.getCubicBezierXYatT(controlPoints.startPoint, controlPoints.point1, controlPoints.point2, controlPoints.endPoint, i);
-                x2 = this.p2m(ptOnCurve.x);
-                y2 = this.p2m(ptOnCurve.y);
-                var edgeShape = new b2s.b2PolygonShape();
-                edgeShape.SetAsEdge(new b2m.b2Vec2(x1, y1), new b2m.b2Vec2(x2, y2));
-                curvedSurface.CreateFixture2(edgeShape);
-                x1 = x2;
-                y1 = y2;
-            }
-
-            surfaces.push(curvedSurface);
+            var curvePoints = curveControl.drawBesizerCurve(controlPts);
+            this.createCurvedSurfaces(curvePoints);
+           
         }
 
 
 
-        createFlatSurface(): void {
+        public createFlatSurface(): void {
 
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
@@ -196,14 +162,14 @@ module SlopePhysics {
         }
 
 
-        tick(): void {
+        public tick(): void {
             stage.update();
             draw();
             //world.DrawDebugData();
             world.Step(1 / step, 10, 10);
         }
 
-        changeGravity(value: number): void {
+        public changeGravity(value: number): void {
             this.gravity = value * 10;
             world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         }
@@ -211,16 +177,16 @@ module SlopePhysics {
 
 
         //createBall(event: createjs.MouseEvent): void {
-           public createBall = (): void => {
-           console.log('curve control points = ' + curveControl.getCurvePoints().length);
-               this.removeSurfaces();
-               this.createCurvedSurfaces(curveControl.getCurvePoints());
+        public createBall = (): void => {
+            console.log('curve control points = ' + curveControl.getCurvePoints().length);
+            //this.removeSurfaces();
+            //this.createCurvedSurfaces(curveControl.getCurvePoints());
 
             //console.log('clicked at ' + event.stageX + ',' + event.stageY);
             this.removeBodies();
 
-            var x: number = controlPoints.startPoint.getAttr('x');
-            var y: number = controlPoints.startPoint.getAttr('y');
+            var x: number = 20;
+            var y: number = 0;
 
             var bodyDef = new b2d.b2BodyDef();
 
@@ -251,11 +217,11 @@ module SlopePhysics {
 
 
             bodies.push(body);
-           }
+        }
 
-        public createCurvedSurfaces(points : Array<PolygonSubdivision.Point>): void {
-            console.log('creating curved surface with ' + points.length +' number of points');
-           
+        public createCurvedSurfaces(points: Array<PolygonSubdivision.Point>): void {
+            console.log('creating curved surface with ' + points.length + ' number of points');
+
 
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
@@ -278,7 +244,7 @@ module SlopePhysics {
             x1 = this.p2m(ptOnCurve.x);
             y1 = this.p2m(ptOnCurve.y);
 
-        
+
             for (var i = 1; i < points.length; i++) {
                 var pt: PolygonSubdivision.Point = points[i];
                 x2 = this.p2m(pt.x);
@@ -297,28 +263,7 @@ module SlopePhysics {
             return x / scale;
         }
 
-        private getCubicBezierXYatT(startPt, controlPt1, controlPt2, endPt, T): any {
-
-            var x: number = this.CubicN(T, startPt.attrs.x, controlPt1.attrs.x, controlPt2.attrs.x, endPt.attrs.x);
-            var y: number = this.CubicN(T, startPt.attrs.y, controlPt1.attrs.y, controlPt2.attrs.y, endPt.attrs.y);
-
-            return ({ x: x, y: y });
-        }
-
-        private CubicN(T: number, a: number, b: number, c: number, d: number): number {
-
-            var t2: number = T * T;
-            var t3: number = t2 * T;
-
-            return a + (-a * 3 + T * (3 * a - a * T)) * T
-                + (3 * b + T * (-6 * b + b * 3 * T)) * T
-                + (c * 3 - c * 3 * T) * t2
-                + d * t3;
-        }
-
-
-
-
+ 
         private onResizeHandler(event: Event = null): void {
 
             this.removeBodies();
@@ -330,10 +275,9 @@ module SlopePhysics {
 
             stageW = window.innerWidth;;
             stageH = window.innerHeight;
-            this.createCurvedSurface();
-            curveControl = new Curves.CurveControl('container', stageW, stageH);
 
-            //this.createFlatSurface();
+            curveControl = new Curves.CurveControl('container', stageW, stageH);
+            this.createSurfaces();
         }
 
 
