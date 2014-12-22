@@ -5,6 +5,8 @@
 /// <reference path="./scripts/typings/preloadjs/preloadjs.d.ts"/>
 /// <reference path="./scripts/typings/box2d/box2dweb.d.ts" />
 /// <reference path="./scripts/typings/kinetic/kinetic.d.ts" />
+
+
 /// <reference path="./scripts/typings/curvecontrol.ts" />
 /// <reference path="./scripts/typings/polygonsubdivision.ts" />
 
@@ -13,13 +15,17 @@ window.addEventListener('load', () => {
     var slopePhysics = new SlopePhysics.Main(canvas);
 
     // set up button events
-    document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
-    document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
+    //document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
+    //document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
+    //document.getElementById("btnDraw").addEventListener("click", slopePhysics.createDrawnSurface);
+    //document.getElementById("btnBezier").addEventListener("click", slopePhysics.createBezierSurface);
 
-    // if the user draws, reset the line smoothing range slider
-    document.getElementById("btnDraw").addEventListener("click", function () {
-        (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
-    });
+
+    //document.getElementById("btnDraw").addEventListener("click", function () {
+       //slopePhysics.createSurfaces(true);
+   //     (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
+   // });
+
 
     // set up gravity slider for event
     var gravity = document.getElementById("gravity-range");
@@ -36,40 +42,38 @@ module SlopePhysics {
     import b2s = Box2D.Collision.Shapes;
     import b2j = Box2D.Dynamics.Joints;
 
+
+    var canvas: HTMLCanvasElement;
+    var stage: createjs.Stage;
+    var context: CanvasRenderingContext2D;
+
+    var stageW: number;
+    var stageH: number;
+    
+
     export var curveControl: Curves.CurveControl;
     export var subdivisionPoint: PolygonSubdivision.Point
     export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
     export var polylineSimplify: PolygonSubdivision.PolylineSimplify;
     export var bezierCurve: PolygonSubdivision.BezierCurve;
 
-
-    var canvas: HTMLCanvasElement;
-    var stage: createjs.Stage;
-    var context: CanvasRenderingContext2D;
     var lineTolerance: number = 1.0;
-    var stageW: number;
-    var stageH: number;
     var bodies: any[] = new Array();
     var surfaces: any[] = new Array();
+    var surfacePoints: any[] = new Array();
+
 
     export var world: Box2D.Dynamics.b2World;
     export var scale: number = 30;
     export var step: number = 20;
-    export class ControlPoints {
-        public startPoint: Kinetic.Circle;
-        public point1: Kinetic.Circle;
-        public point2: Kinetic.Circle;
-        public endPoint: Kinetic.Circle;
-        public main: Main;
-    }
-    var controlPoints: ControlPoints;
-
-
+   
+   
     export class Main {
         public gravity: number = 9.81;
         public canvas: HTMLCanvasElement;
-
+        
         constructor(canvas: HTMLCanvasElement) {
+            
             this.canvas = canvas;
             context = canvas.getContext("2d");
             stage = new createjs.Stage(canvas);
@@ -80,13 +84,12 @@ module SlopePhysics {
             polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             bezierCurve = new PolygonSubdivision.BezierCurve;
 
-            curveControl = new Curves.CurveControl('container', stageW, stageH);
-
+            curveControl = new Curves.CurveControl('container',  stageW, stageH);
+    
             world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
-            stage.addEventListener('stagemousedown', this.createBall);
-            this.createSurfaces();
-           
-
+   //         stage.addEventListener('stagemousedown', this.createBall);
+            
+   
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
             createjs.Ticker.addEventListener('tick', this.tick);
@@ -97,42 +100,55 @@ module SlopePhysics {
             var lineToleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
             lineToleranceSlider.addEventListener("mouseup", curveControl.setLineTolerance.bind(this), false);
 
+            //var gravitySlider = <HTMLInputElement>document.getElementById("gravity-range");
+            //gravitySlider.addEventListener("mouseup", this.changeGravity.bind(this), false);
+
+
             var drawButton = <HTMLInputElement>document.getElementById("btnDraw");
-            drawButton.addEventListener("click", curveControl.drawLine.bind(this), false);
+            drawButton.addEventListener("click", this.createDrawnSurface.bind(this), false);
+
+            var bezierButton = <HTMLInputElement>document.getElementById("btnBezier");
+            bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
+
+            var reloadButton = <HTMLInputElement>document.getElementById("btnReload");
+            reloadButton.addEventListener("click", this.createBall.bind(this), false);
+
+      
 
         }
-
         public settings(): void {
-
-
         }
 
-        pause(): void {
-            if (step == 0) {
-                step = 20;
-            } else {
-                step = 0;
-            }
-        }
+        public createDrawnSurface(): void {
+            console.log("drawing surface");
+            this.clearSurfaces();
+            this.removeBodies();
+            var that = this;
+            document.addEventListener("pointEditListener", function () {
+                that.clearSurfaces();
+                that.clearSurfaces();
+                var points = <Array<PolygonSubdivision.Point>> event.detail;
+                that.setSurfacePoints(points);
+            });
 
-        reluanch(): void {
-            alert('reload clicked');
+            curveControl.drawLine();
+       }        
 
-        }
+        public createBezierSurface(): void {
+            console.log("bezier surface");
+            this.clearSurfaces();
+            this.removeBodies();
 
-        public createSurfaces(): void {
-            console.log('creating curved surface');
             var controlPts = new Array<PolygonSubdivision.Point>();
             controlPts[0] = new PolygonSubdivision.Point(10, 200);
             controlPts[1] = new PolygonSubdivision.Point(250, 800);
             controlPts[2] = new PolygonSubdivision.Point(1200, 800);
             controlPts[3] = new PolygonSubdivision.Point(1175, 400);
 
-            var curvePoints = curveControl.drawBesizerCurve(controlPts);
-            this.createCurvedSurfaces(curvePoints);
-           
-        }
+            var points = curveControl.drawBesizerCurve(controlPts);
 
+            this.setSurfacePoints(points);
+        }
 
 
         public createFlatSurface(): void {
@@ -219,8 +235,9 @@ module SlopePhysics {
             bodies.push(body);
         }
 
-        public createCurvedSurfaces(points: Array<PolygonSubdivision.Point>): void {
-            console.log('creating curved surface with ' + points.length + ' number of points');
+        public setSurfacePoints(points: Array<PolygonSubdivision.Point>): void {
+
+            console.log('creating curved surface with ' + points.length + ' number of points, yeah !');
 
 
             // create surface defintion
@@ -267,7 +284,7 @@ module SlopePhysics {
         private onResizeHandler(event: Event = null): void {
 
             this.removeBodies();
-            this.removeSurfaces();
+            //this.removeSurfaces();
 
             stage.canvas.width = window.innerWidth;
             stage.canvas.height = window.innerHeight;
@@ -277,11 +294,11 @@ module SlopePhysics {
             stageH = window.innerHeight;
 
             curveControl = new Curves.CurveControl('container', stageW, stageH);
-            this.createSurfaces();
+           // this.createSurfaces();
         }
 
-
-        public removeSurfaces(): void {
+        
+        public clearSurfaces = (): void => {
             while (surfaces.length) {
                 var surface = surfaces.pop();
                 world.DestroyBody(surface);
@@ -290,7 +307,7 @@ module SlopePhysics {
         }
 
 
-        private removeBodies(): void {
+        public removeBodies(): void {
             while (bodies.length) {
                 var body = bodies.pop();
                 world.DestroyBody(body);
@@ -298,6 +315,8 @@ module SlopePhysics {
             stage.update();
         }
     }
+
+  
 
     function draw() {
 

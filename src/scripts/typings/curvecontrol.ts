@@ -1,5 +1,6 @@
 ﻿/// <reference path="./kinetic/kinetic.d.ts" />
 /// <reference path="./polygonsubdivision.ts" />
+
 module Curves {
     export var controlPointLayer: Kinetic.Layer;
     export var controlLineLayer: Kinetic.Layer;
@@ -117,6 +118,10 @@ module Curves {
             controlPointLayer.drawScene();
             stage.add(controlPointLayer);
             stage.add(controlLineLayer);
+
+            var event = <any> document.createEvent('CustomEvent');
+            event.initCustomEvent('pointEditListener', true, true, curvePoints);
+            document.dispatchEvent(event);
         }
 
         public updateControlLines(): void {
@@ -163,9 +168,12 @@ module Curves {
 
             controlLineLayer.add(blueLine);
             controlLineLayer.drawScene();
+            var event = <any> document.createEvent('CustomEvent');
+            event.initCustomEvent('pointEditListener', true, true, curvePoints);
+            document.dispatchEvent(event);
         }
 
-        //public drawBesizerCurve(event: MouseEvent) {
+       
 
 
         public drawBesizerCurve(controlPoints: Array<PolygonSubdivision.Point>): Array<PolygonSubdivision.Point> {
@@ -174,9 +182,9 @@ module Curves {
             return curvePoints;
         }
 
-        public drawLine(event: MouseEvent): void {
+        public drawLine() {
             lineTolerance = 0;
-
+           
             stage.clear();
             drawPoints.length = 0;
             var layer = new Kinetic.Layer();
@@ -185,7 +193,7 @@ module Curves {
                 y: 0,
                 width: stage.getWidth(),
                 height: stage.getHeight(),
-                fill: "white"
+                fill: "transparent"
             });
             layer.add(background);
             layer.draw();
@@ -197,13 +205,14 @@ module Curves {
             var newline;
             // a reference to the array of points making newline
             var points = new Array<PolygonSubdivision.Point>();
+
             var tempPoints = [];
 
             // on the background
             // listen for mousedown, mouseup and mousemove events
             background.on('mousedown', function () {
                 isMouseDown = true;
-                console.log('mouse down');
+                console.log('mouse down from curve control');
                 tempPoints = [];
                 //drawPoints.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
                 points.push(new PolygonSubdivision.Point(stage.getPointerPosition().x, stage.getPointerPosition().y));
@@ -226,7 +235,14 @@ module Curves {
                 isMouseDown = false;
 
 
+                console.log('mouse up from curve control');
+               
+                this.curvePoints = polylineSimplify.simplify(points, lineTolerance, true);
+
                 var newpoints = polylineSimplify.simplify(points, lineTolerance, true);
+                var event = <any> document.createEvent('CustomEvent');
+                event.initCustomEvent('pointEditListener', true, true, newpoints);
+                document.dispatchEvent(event);
 
             });
             background.on('mousemove', function () {
@@ -246,7 +262,13 @@ module Curves {
                 layer.drawScene();
             });
             stage.add(layer);
+
+
+            return points;
         }
+
     }
+
+
 }
 

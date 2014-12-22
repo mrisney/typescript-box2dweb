@@ -274,6 +274,9 @@ var Curves;
             Curves.controlPointLayer.drawScene();
             Curves.stage.add(Curves.controlPointLayer);
             Curves.stage.add(Curves.controlLineLayer);
+            var event = document.createEvent('CustomEvent');
+            event.initCustomEvent('pointEditListener', true, true, curvePoints);
+            document.dispatchEvent(event);
         };
         CurveControl.prototype.updateControlLines = function () {
             Curves.controlLineLayer.removeChildren();
@@ -313,13 +316,16 @@ var Curves;
             });
             Curves.controlLineLayer.add(blueLine);
             Curves.controlLineLayer.drawScene();
+            var event = document.createEvent('CustomEvent');
+            event.initCustomEvent('pointEditListener', true, true, curvePoints);
+            document.dispatchEvent(event);
         };
         CurveControl.prototype.drawBesizerCurve = function (controlPoints) {
             this.controlPoints = controlPoints;
             var curvePoints = Curves.bezierCurve.subdivide(controlPoints, 1);
             return curvePoints;
         };
-        CurveControl.prototype.drawLine = function (event) {
+        CurveControl.prototype.drawLine = function () {
             Curves.lineTolerance = 0;
             Curves.stage.clear();
             Curves.drawPoints.length = 0;
@@ -329,7 +335,7 @@ var Curves;
                 y: 0,
                 width: Curves.stage.getWidth(),
                 height: Curves.stage.getHeight(),
-                fill: "white"
+                fill: "transparent"
             });
             layer.add(background);
             layer.draw();
@@ -341,7 +347,7 @@ var Curves;
             var tempPoints = [];
             background.on('mousedown', function () {
                 isMouseDown = true;
-                console.log('mouse down');
+                console.log('mouse down from curve control');
                 tempPoints = [];
                 points.push(new PolygonSubdivision.Point(Curves.stage.getPointerPosition().x, Curves.stage.getPointerPosition().y));
                 tempPoints = [];
@@ -359,7 +365,12 @@ var Curves;
             });
             background.on('mouseup', function () {
                 isMouseDown = false;
+                console.log('mouse up from curve control');
+                this.curvePoints = Curves.polylineSimplify.simplify(points, Curves.lineTolerance, true);
                 var newpoints = Curves.polylineSimplify.simplify(points, Curves.lineTolerance, true);
+                var event = document.createEvent('CustomEvent');
+                event.initCustomEvent('pointEditListener', true, true, newpoints);
+                document.dispatchEvent(event);
             });
             background.on('mousemove', function () {
                 if (!isMouseDown) {
@@ -373,6 +384,7 @@ var Curves;
                 layer.drawScene();
             });
             Curves.stage.add(layer);
+            return points;
         };
         return CurveControl;
     })();
@@ -381,11 +393,6 @@ var Curves;
 window.addEventListener('load', function () {
     var canvas = document.getElementById('surface');
     var slopePhysics = new SlopePhysics.Main(canvas);
-    document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
-    document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
-    document.getElementById("btnDraw").addEventListener("click", function () {
-        document.getElementById("line-tolerance-range").value = "0,0";
-    });
     var gravity = document.getElementById("gravity-range");
     gravity.addEventListener('mouseup', function () {
         slopePhysics.changeGravity(this.value);
@@ -409,16 +416,10 @@ var SlopePhysics;
     var stageH;
     var bodies = new Array();
     var surfaces = new Array();
+    var surfacePoints = new Array();
     SlopePhysics.world;
     SlopePhysics.scale = 30;
     SlopePhysics.step = 20;
-    var ControlPoints = (function () {
-        function ControlPoints() {
-        }
-        return ControlPoints;
-    })();
-    SlopePhysics.ControlPoints = ControlPoints;
-    var controlPoints;
     var Main = (function () {
         function Main(canvas) {
             var _this = this;
@@ -444,6 +445,13 @@ var SlopePhysics;
                 body.CreateFixture(fixDef);
                 bodies.push(body);
             };
+            this.clearSurfaces = function () {
+                while (surfaces.length) {
+                    var surface = surfaces.pop();
+                    SlopePhysics.world.DestroyBody(surface);
+                }
+                stage.update();
+            };
             this.canvas = canvas;
             context = canvas.getContext("2d");
             stage = new createjs.Stage(canvas);
@@ -456,7 +464,6 @@ var SlopePhysics;
             SlopePhysics.curveControl = new Curves.CurveControl('container', stageW, stageH);
             SlopePhysics.world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
             stage.addEventListener('stagemousedown', this.createBall);
-            this.createSurfaces();
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
             createjs.Ticker.addEventListener('tick', this.tick);
@@ -465,30 +472,38 @@ var SlopePhysics;
             var lineToleranceSlider = document.getElementById("line-tolerance-range");
             lineToleranceSlider.addEventListener("mouseup", SlopePhysics.curveControl.setLineTolerance.bind(this), false);
             var drawButton = document.getElementById("btnDraw");
-            drawButton.addEventListener("click", SlopePhysics.curveControl.drawLine.bind(this), false);
+            drawButton.addEventListener("click", this.createDrawnSurface.bind(this), false);
+            var bezierButton = document.getElementById("btnBezier");
+            bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
+            var reloadButton = document.getElementById("btnReload");
+            reloadButton.addEventListener("click", this.createBall.bind(this), false);
         }
         Main.prototype.settings = function () {
         };
-        Main.prototype.pause = function () {
-            if (SlopePhysics.step == 0) {
-                SlopePhysics.step = 20;
-            }
-            else {
-                SlopePhysics.step = 0;
-            }
+        Main.prototype.createDrawnSurface = function () {
+            console.log("drawing surface");
+            this.clearSurfaces();
+            this.removeBodies();
+            var that = this;
+            document.addEventListener("pointEditListener", function () {
+                that.clearSurfaces();
+                that.clearSurfaces();
+                var points = event.detail;
+                that.setSurfacePoints(points);
+            });
+            SlopePhysics.curveControl.drawLine();
         };
-        Main.prototype.reluanch = function () {
-            alert('reload clicked');
-        };
-        Main.prototype.createSurfaces = function () {
-            console.log('creating curved surface');
+        Main.prototype.createBezierSurface = function () {
+            console.log("bezier surface");
+            this.clearSurfaces();
+            this.removeBodies();
             var controlPts = new Array();
             controlPts[0] = new PolygonSubdivision.Point(10, 200);
             controlPts[1] = new PolygonSubdivision.Point(250, 800);
             controlPts[2] = new PolygonSubdivision.Point(1200, 800);
             controlPts[3] = new PolygonSubdivision.Point(1175, 400);
-            var curvePoints = SlopePhysics.curveControl.drawBesizerCurve(controlPts);
-            this.createCurvedSurfaces(curvePoints);
+            var points = SlopePhysics.curveControl.drawBesizerCurve(controlPts);
+            this.setSurfacePoints(points);
         };
         Main.prototype.createFlatSurface = function () {
             var surfaceDef = new b2d.b2BodyDef();
@@ -517,8 +532,8 @@ var SlopePhysics;
             this.gravity = value * 10;
             SlopePhysics.world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         };
-        Main.prototype.createCurvedSurfaces = function (points) {
-            console.log('creating curved surface with ' + points.length + ' number of points');
+        Main.prototype.setSurfacePoints = function (points) {
+            console.log('creating curved surface with ' + points.length + ' number of points, yeah !');
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
             surfaceDef.userData = 'curved-surface';
@@ -550,7 +565,6 @@ var SlopePhysics;
         Main.prototype.onResizeHandler = function (event) {
             if (event === void 0) { event = null; }
             this.removeBodies();
-            this.removeSurfaces();
             stage.canvas.width = window.innerWidth;
             stage.canvas.height = window.innerHeight;
             stage.update();
@@ -558,14 +572,6 @@ var SlopePhysics;
             ;
             stageH = window.innerHeight;
             SlopePhysics.curveControl = new Curves.CurveControl('container', stageW, stageH);
-            this.createSurfaces();
-        };
-        Main.prototype.removeSurfaces = function () {
-            while (surfaces.length) {
-                var surface = surfaces.pop();
-                SlopePhysics.world.DestroyBody(surface);
-            }
-            stage.update();
         };
         Main.prototype.removeBodies = function () {
             while (bodies.length) {
