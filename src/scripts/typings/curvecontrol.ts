@@ -40,7 +40,10 @@ module Curves {
         public getCurvePoints(): Array<PolygonSubdivision.Point> {
             return this.curvePoints;
         }
-
+        public renderControlPoints(): void {
+            console.log('hiding control points');
+            stage.clear();
+        }
         public createControlPoint(x: number, y: number): Kinetic.Circle {
             var controlPoint = new Kinetic.Circle({
                 x: x,

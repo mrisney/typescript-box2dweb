@@ -64,6 +64,7 @@ module SlopePhysics {
 
 
     export var world: Box2D.Dynamics.b2World;
+    export var inEditMode: Boolean = false;
     export var scale: number = 30;
     export var step: number = 20;
    
@@ -100,9 +101,11 @@ module SlopePhysics {
             var lineToleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
             lineToleranceSlider.addEventListener("mouseup", curveControl.setLineTolerance.bind(this), false);
 
-            //var gravitySlider = <HTMLInputElement>document.getElementById("gravity-range");
-            //gravitySlider.addEventListener("mouseup", this.changeGravity.bind(this), false);
+            var reloadButton = <HTMLInputElement>document.getElementById("btnReload");
+            reloadButton.addEventListener("click", this.createBall.bind(this), false);
 
+            var settingsButton = <HTMLInputElement>document.getElementById("btnSettings");
+            settingsButton.addEventListener("click", this.settings.bind(this), false);
 
             var drawButton = <HTMLInputElement>document.getElementById("btnDraw");
             drawButton.addEventListener("click", this.createDrawnSurface.bind(this), false);
@@ -110,13 +113,16 @@ module SlopePhysics {
             var bezierButton = <HTMLInputElement>document.getElementById("btnBezier");
             bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
 
-            var reloadButton = <HTMLInputElement>document.getElementById("btnReload");
-            reloadButton.addEventListener("click", this.createBall.bind(this), false);
-
       
 
         }
         public settings(): void {
+
+            if (!inEditMode) {
+                curveControl.renderControlPoints();
+            }
+
+            inEditMode = !inEditMode;
         }
 
         public createDrawnSurface(): void {
@@ -130,7 +136,7 @@ module SlopePhysics {
                 var points = <Array<PolygonSubdivision.Point>> event.detail;
                 that.setSurfacePoints(points);
             });
-
+            inEditMode = true;
             curveControl.drawLine();
        }        
 
@@ -237,9 +243,6 @@ module SlopePhysics {
 
         public setSurfacePoints(points: Array<PolygonSubdivision.Point>): void {
 
-            console.log('creating curved surface with ' + points.length + ' number of points, yeah !');
-
-
             // create surface defintion
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
@@ -294,7 +297,7 @@ module SlopePhysics {
             stageH = window.innerHeight;
 
             curveControl = new Curves.CurveControl('container', stageW, stageH);
-           // this.createSurfaces();
+            //this.createSurfaces();
         }
 
         
@@ -360,7 +363,7 @@ module SlopePhysics {
                         ctx.fillRect(((pos.x * scale) - (x * scale / 2)), ((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
                         ctx.restore();
                     }
-                } else if (userData == 'curved-surface') {
+                } else if (userData == 'curved-surface' && (!inEditMode)) {
                     var fixture = body.GetFixtureList();
                     while (fixture) {
                         var shape = fixture.GetShape();

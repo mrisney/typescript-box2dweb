@@ -205,6 +205,10 @@ var Curves;
         CurveControl.prototype.getCurvePoints = function () {
             return this.curvePoints;
         };
+        CurveControl.prototype.renderControlPoints = function () {
+            console.log('hiding control points');
+            Curves.stage.clear();
+        };
         CurveControl.prototype.createControlPoint = function (x, y) {
             var controlPoint = new Kinetic.Circle({
                 x: x,
@@ -403,21 +407,22 @@ var SlopePhysics;
     var b2m = Box2D.Common.Math;
     var b2d = Box2D.Dynamics;
     var b2s = Box2D.Collision.Shapes;
+    var canvas;
+    var stage;
+    var context;
+    var stageW;
+    var stageH;
     SlopePhysics.curveControl;
     SlopePhysics.subdivisionPoint;
     SlopePhysics.chaikinCurve;
     SlopePhysics.polylineSimplify;
     SlopePhysics.bezierCurve;
-    var canvas;
-    var stage;
-    var context;
     var lineTolerance = 1.0;
-    var stageW;
-    var stageH;
     var bodies = new Array();
     var surfaces = new Array();
     var surfacePoints = new Array();
     SlopePhysics.world;
+    SlopePhysics.inEditMode = false;
     SlopePhysics.scale = 30;
     SlopePhysics.step = 20;
     var Main = (function () {
@@ -463,7 +468,6 @@ var SlopePhysics;
             SlopePhysics.bezierCurve = new PolygonSubdivision.BezierCurve;
             SlopePhysics.curveControl = new Curves.CurveControl('container', stageW, stageH);
             SlopePhysics.world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
-            stage.addEventListener('stagemousedown', this.createBall);
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
             createjs.Ticker.addEventListener('tick', this.tick);
@@ -471,14 +475,20 @@ var SlopePhysics;
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
             var lineToleranceSlider = document.getElementById("line-tolerance-range");
             lineToleranceSlider.addEventListener("mouseup", SlopePhysics.curveControl.setLineTolerance.bind(this), false);
+            var reloadButton = document.getElementById("btnReload");
+            reloadButton.addEventListener("click", this.createBall.bind(this), false);
+            var settingsButton = document.getElementById("btnSettings");
+            settingsButton.addEventListener("click", this.settings.bind(this), false);
             var drawButton = document.getElementById("btnDraw");
             drawButton.addEventListener("click", this.createDrawnSurface.bind(this), false);
             var bezierButton = document.getElementById("btnBezier");
             bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
-            var reloadButton = document.getElementById("btnReload");
-            reloadButton.addEventListener("click", this.createBall.bind(this), false);
         }
         Main.prototype.settings = function () {
+            if (!SlopePhysics.inEditMode) {
+                SlopePhysics.curveControl.renderControlPoints();
+            }
+            SlopePhysics.inEditMode = !SlopePhysics.inEditMode;
         };
         Main.prototype.createDrawnSurface = function () {
             console.log("drawing surface");
@@ -491,6 +501,7 @@ var SlopePhysics;
                 var points = event.detail;
                 that.setSurfacePoints(points);
             });
+            SlopePhysics.inEditMode = true;
             SlopePhysics.curveControl.drawLine();
         };
         Main.prototype.createBezierSurface = function () {
@@ -533,7 +544,6 @@ var SlopePhysics;
             SlopePhysics.world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         };
         Main.prototype.setSurfacePoints = function (points) {
-            console.log('creating curved surface with ' + points.length + ' number of points, yeah !');
             var surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
             surfaceDef.userData = 'curved-surface';
@@ -620,7 +630,7 @@ var SlopePhysics;
                         ctx.restore();
                     }
                 }
-                else if (userData == 'curved-surface') {
+                else if (userData == 'curved-surface' && (!SlopePhysics.inEditMode)) {
                     var fixture = body.GetFixtureList();
                     while (fixture) {
                         var shape = fixture.GetShape();
