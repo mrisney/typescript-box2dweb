@@ -43,6 +43,29 @@ input[type='range']::-moz-range-thumb {
 .icon-bezier-curve { 
   background-image: url("bezier.png");
   background-position: center center; 
-  height: 14px; 
-  width: 14px;
+  height: 12px; 
+  width: 12px;
 }
+
+.voffset  { margin-top: 2px; }
+.voffset1 { margin-top: 5px; }
+.voffset2 { margin-top: 10px; }
+.voffset3 { margin-top: 15px; }
+.voffset4 { margin-top: 30px; }
+.voffset5 { margin-top: 40px; }
+.voffset6 { margin-top: 60px; }
+.voffset7 { margin-top: 80px; }
+.voffset8 { margin-top: 100px; }
+.voffset9 { margin-top: 150px; }
+
+.hoffset  { margin-left: 2px; }
+.hoffset1 { margin-left: 5px; }
+.hoffset2 { margin-left: 10px; }
+.hoffset3 { margin-left: 15px; }
+.hoffset4 { margin-left: 30px; }
+.hoffset5 { margin-left: 40px; }
+.hoffset6 { margin-left: 60px; }
+.hoffset7 { margin-left: 80px; }
+.hoffset8 { margin-left: 100px; }
+.hoffset9 { margin-left: 150px; }
+

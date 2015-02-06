@@ -278,9 +278,9 @@ var Curves;
             Curves.controlPointLayer.drawScene();
             Curves.stage.add(Curves.controlPointLayer);
             Curves.stage.add(Curves.controlLineLayer);
-            var event = document.createEvent('CustomEvent');
-            event.initCustomEvent('pointEditListener', true, true, curvePoints);
-            document.dispatchEvent(event);
+            var customEvent = document.createEvent('CustomEvent');
+            customEvent.initCustomEvent('pointEditListener', true, true, curvePoints);
+            document.dispatchEvent(customEvent);
         };
         CurveControl.prototype.updateControlLines = function () {
             Curves.controlLineLayer.removeChildren();
@@ -396,6 +396,8 @@ var Curves;
 })(Curves || (Curves = {}));
 window.addEventListener('load', function () {
     var canvas = document.getElementById('surface');
+    canvas.width = (document.documentElement.offsetWidth - 25);
+    canvas.height = (document.documentElement.clientHeight - 150);
     var slopePhysics = new SlopePhysics.Main(canvas);
     var gravity = document.getElementById("gravity-range");
     gravity.addEventListener('mouseup', function () {
@@ -497,22 +499,30 @@ var SlopePhysics;
             var that = this;
             document.addEventListener("pointEditListener", function () {
                 that.clearSurfaces();
-                that.clearSurfaces();
-                var points = event.detail;
+                var points = event.recordset;
                 that.setSurfacePoints(points);
             });
             SlopePhysics.inEditMode = true;
             SlopePhysics.curveControl.drawLine();
         };
         Main.prototype.createBezierSurface = function () {
-            console.log("bezier surface");
             this.clearSurfaces();
             this.removeBodies();
+            var width = this.canvas.width;
+            var height = this.canvas.height;
+            var pt1x = 0;
+            var pt1y = Math.floor(height / 16);
+            var pt2x = Math.floor(width / 16);
+            var pt2y = Math.floor(height);
+            var pt3x = Math.floor(15 * (width / 16));
+            var pt3y = Math.floor(height);
+            var pt4x = width;
+            var pt4y = Math.floor(height / 16);
             var controlPts = new Array();
-            controlPts[0] = new PolygonSubdivision.Point(10, 200);
-            controlPts[1] = new PolygonSubdivision.Point(250, 800);
-            controlPts[2] = new PolygonSubdivision.Point(1200, 800);
-            controlPts[3] = new PolygonSubdivision.Point(1175, 400);
+            controlPts[0] = new PolygonSubdivision.Point(pt1x, pt1y);
+            controlPts[1] = new PolygonSubdivision.Point(pt2x, pt2y);
+            controlPts[2] = new PolygonSubdivision.Point(pt3x, pt3y);
+            controlPts[3] = new PolygonSubdivision.Point(pt4x, pt4y);
             var points = SlopePhysics.curveControl.drawBesizerCurve(controlPts);
             this.setSurfacePoints(points);
         };
@@ -575,13 +585,12 @@ var SlopePhysics;
         Main.prototype.onResizeHandler = function (event) {
             if (event === void 0) { event = null; }
             this.removeBodies();
-            stage.canvas.width = window.innerWidth;
-            stage.canvas.height = window.innerHeight;
+            var width = (document.documentElement.offsetWidth - 25);
+            var height = (document.documentElement.clientHeight - 150);
+            stage.canvas.width = width;
+            stage.canvas.height = height;
+            SlopePhysics.curveControl = new Curves.CurveControl('container', width, height);
             stage.update();
-            stageW = window.innerWidth;
-            ;
-            stageH = window.innerHeight;
-            SlopePhysics.curveControl = new Curves.CurveControl('container', stageW, stageH);
         };
         Main.prototype.removeBodies = function () {
             while (bodies.length) {

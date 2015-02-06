@@ -10,7 +10,7 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
-    <TypeScriptToolsVersion>1.1</TypeScriptToolsVersion>
+    <TypeScriptToolsVersion>1.4</TypeScriptToolsVersion>
     <UseIISExpress>true</UseIISExpress>
     <IISExpressSSLPort />
     <IISExpressAnonymousAuthentication />
@@ -20,7 +20,6 @@
   <ItemGroup>
     <Content Include="app.css" />
     <Content Include="index.html" />
-    <Content Include="StyleSheet1.css" />
     <Content Include="web.config" />
   </ItemGroup>
   <ItemGroup>
@@ -34,6 +33,7 @@
     <TypeScriptCompile Include="./scripts/typings/preloadjs/preloadjs.d.ts" />
     <TypeScriptCompile Include="./scripts/typings/createjs/soundjs.d.ts" />
     <TypeScriptCompile Include="./scripts/typings/tweenjs/tweenjs.d.ts" />
+    <TypeScriptCompile Include="scripts\typings\lib.es6.d.ts" />
     <TypeScriptCompile Include="scripts\typings\polygonsubdivision.ts" />
   </ItemGroup>
   <ItemGroup>
@@ -76,6 +76,7 @@
     <TypeScriptModuleKind>amd</TypeScriptModuleKind>
     <TypeScriptOutDir />
     <TypeScriptOutFile>app.js</TypeScriptOutFile>
+    <TypeScriptTarget>ES6</TypeScriptTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TypeScriptRemoveComments>true</TypeScriptRemoveComments>

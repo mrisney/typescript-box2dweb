@@ -10,8 +10,11 @@
 /// <reference path="./scripts/typings/curvecontrol.ts" />
 /// <reference path="./scripts/typings/polygonsubdivision.ts" />
 
-window.addEventListener('load', () => {
+window.addEventListener('load',() => {
     var canvas = <HTMLCanvasElement> document.getElementById('surface');
+    canvas.width = (document.documentElement.offsetWidth-25);
+    canvas.height = (document.documentElement.clientHeight-150);
+   
     var slopePhysics = new SlopePhysics.Main(canvas);
 
     // set up button events
@@ -22,9 +25,9 @@ window.addEventListener('load', () => {
 
 
     //document.getElementById("btnDraw").addEventListener("click", function () {
-       //slopePhysics.createSurfaces(true);
-   //     (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
-   // });
+    //slopePhysics.createSurfaces(true);
+    //     (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
+    // });
 
 
     // set up gravity slider for event
@@ -49,7 +52,7 @@ module SlopePhysics {
 
     var stageW: number;
     var stageH: number;
-    
+
 
     export var curveControl: Curves.CurveControl;
     export var subdivisionPoint: PolygonSubdivision.Point
@@ -67,14 +70,14 @@ module SlopePhysics {
     export var inEditMode: Boolean = false;
     export var scale: number = 30;
     export var step: number = 20;
-   
-   
+
+
     export class Main {
         public gravity: number = 9.81;
         public canvas: HTMLCanvasElement;
-        
+
         constructor(canvas: HTMLCanvasElement) {
-            
+
             this.canvas = canvas;
             context = canvas.getContext("2d");
             stage = new createjs.Stage(canvas);
@@ -85,10 +88,10 @@ module SlopePhysics {
             polylineSimplify = new PolygonSubdivision.PolylineSimplify();
             bezierCurve = new PolygonSubdivision.BezierCurve;
 
-            curveControl = new Curves.CurveControl('container',  stageW, stageH);
-    
+            curveControl = new Curves.CurveControl('container', stageW, stageH);
+
             world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
-   //         stage.addEventListener('stagemousedown', this.createBall);
+            //         stage.addEventListener('stagemousedown', this.createBall);
             
    
             createjs.Ticker.setFPS(60);
@@ -113,7 +116,7 @@ module SlopePhysics {
             var bezierButton = <HTMLInputElement>document.getElementById("btnBezier");
             bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
 
-      
+
 
         }
         public settings(): void {
@@ -132,27 +135,46 @@ module SlopePhysics {
             var that = this;
             document.addEventListener("pointEditListener", function () {
                 that.clearSurfaces();
-                that.clearSurfaces();
-                var points = <Array<PolygonSubdivision.Point>> event.detail;
+                var points = <Array<PolygonSubdivision.Point>> event.recordset;
                 that.setSurfacePoints(points);
             });
             inEditMode = true;
             curveControl.drawLine();
-       }        
+        }
 
         public createBezierSurface(): void {
-            console.log("bezier surface");
+            
             this.clearSurfaces();
             this.removeBodies();
 
+            var width = this.canvas.width;
+            var height = this.canvas.height;
+           
+            
+            // first point - flush with edge of canvas left side (0),  1/16 of the way from the top
+            var pt1x = 0;
+            var pt1y = Math.floor(height / 16);
+
+            // second point : x - 1/16 from canvas left side, y at the bottom 
+            var pt2x = Math.floor(width/16);
+            var pt2y = Math.floor(height);
+
+            // third point : x -  1/16 from canvas left side, y at the bottom 
+            var pt3x = Math.floor(15 * (width / 16));
+            var pt3y = Math.floor(height);
+
+            // third point - flush to the from canvas right side, 1/16 from the bottom 
+            var pt4x = width;
+            var pt4y = Math.floor(height / 16);
+
+           
             var controlPts = new Array<PolygonSubdivision.Point>();
-            controlPts[0] = new PolygonSubdivision.Point(10, 200);
-            controlPts[1] = new PolygonSubdivision.Point(250, 800);
-            controlPts[2] = new PolygonSubdivision.Point(1200, 800);
-            controlPts[3] = new PolygonSubdivision.Point(1175, 400);
+            controlPts[0] = new PolygonSubdivision.Point(pt1x, pt1y);
+            controlPts[1] = new PolygonSubdivision.Point(pt2x, pt2y);
+            controlPts[2] = new PolygonSubdivision.Point(pt3x, pt3y);
+            controlPts[3] = new PolygonSubdivision.Point(pt4x, pt4y);
 
             var points = curveControl.drawBesizerCurve(controlPts);
-
             this.setSurfacePoints(points);
         }
 
@@ -283,24 +305,26 @@ module SlopePhysics {
             return x / scale;
         }
 
- 
+
         private onResizeHandler(event: Event = null): void {
 
             this.removeBodies();
             //this.removeSurfaces();
 
-            stage.canvas.width = window.innerWidth;
-            stage.canvas.height = window.innerHeight;
+            var width = (document.documentElement.offsetWidth - 25);
+            var height = (document.documentElement.clientHeight - 150);
+
+  
+            stage.canvas.width = width;
+            stage.canvas.height = height;
+            curveControl = new Curves.CurveControl('container', width, height);
+
             stage.update();
-
-            stageW = window.innerWidth;;
-            stageH = window.innerHeight;
-
-            curveControl = new Curves.CurveControl('container', stageW, stageH);
+            
             //this.createSurfaces();
         }
 
-        
+
         public clearSurfaces = (): void => {
             while (surfaces.length) {
                 var surface = surfaces.pop();
@@ -319,7 +343,7 @@ module SlopePhysics {
         }
     }
 
-  
+
 
     function draw() {
 
@@ -358,9 +382,9 @@ module SlopePhysics {
 
                         ctx.lineWidth = 1;
                         ctx.strokeStyle = "rgb(0, 0, 0)";
-                        ctx.strokeRect(((pos.x * scale) - (x * scale / 2)), ((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
+                        ctx.strokeRect(((pos.x * scale) - (x * scale / 2)),((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
                         ctx.fillStyle = "rgb(255, 255, 255)";
-                        ctx.fillRect(((pos.x * scale) - (x * scale / 2)), ((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
+                        ctx.fillRect(((pos.x * scale) - (x * scale / 2)),((pos.y * scale) - (y * scale / 2)), x * scale, y * scale);
                         ctx.restore();
                     }
                 } else if (userData == 'curved-surface' && (!inEditMode)) {
