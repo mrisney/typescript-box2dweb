@@ -222,10 +222,8 @@ var Curves;
             });
             return controlPoint;
         };
-        CurveControl.prototype.setLineTolerance = function (event) {
-            var toleranceSlider = document.getElementById("line-tolerance-range");
-            Curves.lineTolerance = +toleranceSlider.value;
-            Curves.simplifiedPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, Curves.lineTolerance, true);
+        CurveControl.prototype.setLineTolerance = function (lineTolerance) {
+            Curves.simplifiedPoints = Curves.polylineSimplify.simplify(Curves.drawPoints, lineTolerance, true);
             this.curvePoints = Curves.simplifiedPoints;
             Curves.stage.clear();
             Curves.controlLineLayer.removeChildren();
@@ -246,7 +244,7 @@ var Curves;
                     strokeWidth: 2,
                     draggable: true
                 });
-                kineticControlPoint.on('dragstart dragmove', function () {
+                kineticControlPoint.on('dragmove  touchmove', function () {
                     Curves.curveControl.updateControlLines();
                 });
                 Curves.kineticControlPoints.push(kineticControlPoint);
@@ -349,7 +347,7 @@ var Curves;
             var newline;
             var points = new Array();
             var tempPoints = [];
-            background.on('mousedown', function () {
+            background.on('mousedown touchstart', function () {
                 isMouseDown = true;
                 console.log('mouse down from curve control');
                 tempPoints = [];
@@ -367,7 +365,7 @@ var Curves;
                 layer.add(line);
                 newline = line;
             });
-            background.on('mouseup', function () {
+            background.on('mouseup touchend', function () {
                 isMouseDown = false;
                 console.log('mouse up from curve control');
                 this.curvePoints = Curves.polylineSimplify.simplify(points, Curves.lineTolerance, true);
@@ -376,7 +374,7 @@ var Curves;
                 event.initCustomEvent('pointEditListener', true, true, newpoints);
                 document.dispatchEvent(event);
             });
-            background.on('mousemove', function () {
+            background.on('mousemove touchmove', function () {
                 if (!isMouseDown) {
                     return;
                 }
@@ -396,12 +394,16 @@ var Curves;
 })(Curves || (Curves = {}));
 window.addEventListener('load', function () {
     var canvas = document.getElementById('surface');
-    canvas.width = (document.documentElement.offsetWidth - 25);
+    canvas.width = (document.documentElement.offsetWidth - 150);
     canvas.height = (document.documentElement.clientHeight - 150);
     var slopePhysics = new SlopePhysics.Main(canvas);
-    var gravity = document.getElementById("gravity-range");
-    gravity.addEventListener('mouseup', function () {
-        slopePhysics.changeGravity(this.value);
+    var gravityRange = new Slider("#gravity-range");
+    gravityRange.on("slide", function (event) {
+        slopePhysics.changeGravity(event.value);
+    });
+    var lineSimplification = new Slider("#line-simplification");
+    lineSimplification.on("slide", function (event) {
+        slopePhysics.lineSimplificaton(event.value);
     });
 });
 var SlopePhysics;
@@ -475,8 +477,6 @@ var SlopePhysics;
             createjs.Ticker.addEventListener('tick', this.tick);
             window.addEventListener("resize", this.onResizeHandler.bind(this), false);
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
-            var lineToleranceSlider = document.getElementById("line-tolerance-range");
-            lineToleranceSlider.addEventListener("mouseup", SlopePhysics.curveControl.setLineTolerance.bind(this), false);
             var reloadButton = document.getElementById("btnReload");
             reloadButton.addEventListener("click", this.createBall.bind(this), false);
             var settingsButton = document.getElementById("btnSettings");
@@ -493,21 +493,21 @@ var SlopePhysics;
             SlopePhysics.inEditMode = !SlopePhysics.inEditMode;
         };
         Main.prototype.createDrawnSurface = function () {
-            console.log("drawing surface");
             this.clearSurfaces();
             this.removeBodies();
             var that = this;
-            document.addEventListener("pointEditListener", function () {
+            var listener = function (event) {
                 that.clearSurfaces();
-                var points = event.recordset;
+                var points = event.detail;
                 that.setSurfacePoints(points);
-            });
+            };
+            document.addEventListener("pointEditListener", listener);
             SlopePhysics.inEditMode = true;
             SlopePhysics.curveControl.drawLine();
         };
         Main.prototype.createBezierSurface = function () {
-            this.clearSurfaces();
             this.removeBodies();
+            this.clearSurfaces();
             var width = this.canvas.width;
             var height = this.canvas.height;
             var pt1x = 0;
@@ -552,6 +552,10 @@ var SlopePhysics;
         Main.prototype.changeGravity = function (value) {
             this.gravity = value * 10;
             SlopePhysics.world.SetGravity(new b2m.b2Vec2(0, this.gravity));
+        };
+        Main.prototype.lineSimplificaton = function (value) {
+            this.clearSurfaces();
+            SlopePhysics.curveControl.setLineTolerance(value);
         };
         Main.prototype.setSurfacePoints = function (points) {
             var surfaceDef = new b2d.b2BodyDef();

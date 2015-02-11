@@ -39,12 +39,19 @@ input[type='range']::-moz-range-thumb {
     width: 20px;
 }
 
+#gravity-range .slider-selection {
+            background: #BABABA;
+}
 
 .icon-bezier-curve { 
   background-image: url("bezier.png");
   background-position: center center; 
   height: 12px; 
   width: 12px;
+}
+
+.borderless tr td {
+    border: none !important;
 }
 
 .voffset  { margin-top: 2px; }
@@ -69,3 +76,6 @@ input[type='range']::-moz-range-thumb {
 .hoffset8 { margin-left: 100px; }
 .hoffset9 { margin-left: 150px; }
 
+#ex1Slider .slider-selection {
+	background: #BABABA;
+}

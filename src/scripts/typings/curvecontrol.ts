@@ -59,9 +59,7 @@ module Curves {
             return controlPoint;
         }
 
-        public setLineTolerance(event: MouseEvent): void {
-            var toleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
-            lineTolerance = +toleranceSlider.value;
+        public setLineTolerance(lineTolerance:number): void {
             simplifiedPoints = polylineSimplify.simplify(drawPoints, lineTolerance, true);
             this.curvePoints = simplifiedPoints;
             stage.clear();
@@ -86,7 +84,7 @@ module Curves {
                     strokeWidth: 2,
                     draggable: true
                 });
-                kineticControlPoint.on('dragstart dragmove', function () {
+                kineticControlPoint.on('dragmove  touchmove', function () {
                     curveControl.updateControlLines();
                 });
                 kineticControlPoints.push(kineticControlPoint);
@@ -171,6 +169,7 @@ module Curves {
 
             controlLineLayer.add(blueLine);
             controlLineLayer.drawScene();
+
             var event = <any> document.createEvent('CustomEvent');
             event.initCustomEvent('pointEditListener', true, true, curvePoints);
             document.dispatchEvent(event);
@@ -213,7 +212,7 @@ module Curves {
 
             // on the background
             // listen for mousedown, mouseup and mousemove events
-            background.on('mousedown', function () {
+            background.on('mousedown touchstart', function () {
                 isMouseDown = true;
                 console.log('mouse down from curve control');
                 tempPoints = [];
@@ -234,7 +233,7 @@ module Curves {
                 newline = line;
 
             });
-            background.on('mouseup', function () {
+            background.on('mouseup touchend', function () {
                 isMouseDown = false;
 
 
@@ -248,7 +247,7 @@ module Curves {
                 document.dispatchEvent(event);
 
             });
-            background.on('mousemove', function () {
+            background.on('mousemove touchmove', function () {
                 if (!isMouseDown) {
                     return;
 

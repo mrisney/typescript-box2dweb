@@ -10,12 +10,25 @@
 /// <reference path="./scripts/typings/curvecontrol.ts" />
 /// <reference path="./scripts/typings/polygonsubdivision.ts" />
 
+declare var Slider;
+
 window.addEventListener('load',() => {
     var canvas = <HTMLCanvasElement> document.getElementById('surface');
-    canvas.width = (document.documentElement.offsetWidth-25);
-    canvas.height = (document.documentElement.clientHeight-150);
-   
+    canvas.width = (document.documentElement.offsetWidth -150);
+    canvas.height = (document.documentElement.clientHeight - 150);
+
     var slopePhysics = new SlopePhysics.Main(canvas);
+    var gravityRange = new Slider("#gravity-range");
+
+    gravityRange.on("slide", function (event) {
+        slopePhysics.changeGravity(event.value);
+    });
+
+    var lineSimplification = new Slider("#line-simplification");
+  
+    lineSimplification.on("slide", function (event) {
+        slopePhysics.lineSimplificaton(event.value);
+    });
 
     // set up button events
     //document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
@@ -29,13 +42,11 @@ window.addEventListener('load',() => {
     //     (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
     // });
 
-
-    // set up gravity slider for event
-    var gravity = document.getElementById("gravity-range");
-    gravity.addEventListener('mouseup', function () {
-        slopePhysics.changeGravity(this.value);
-    });
 })
+
+interface Slider {
+
+}
 
 module SlopePhysics {
 
@@ -101,9 +112,6 @@ module SlopePhysics {
             window.addEventListener("resize", this.onResizeHandler.bind(this), false);
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
 
-            var lineToleranceSlider = <HTMLInputElement>document.getElementById("line-tolerance-range");
-            lineToleranceSlider.addEventListener("mouseup", curveControl.setLineTolerance.bind(this), false);
-
             var reloadButton = <HTMLInputElement>document.getElementById("btnReload");
             reloadButton.addEventListener("click", this.createBall.bind(this), false);
 
@@ -116,8 +124,6 @@ module SlopePhysics {
             var bezierButton = <HTMLInputElement>document.getElementById("btnBezier");
             bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
 
-
-
         }
         public settings(): void {
 
@@ -129,23 +135,26 @@ module SlopePhysics {
         }
 
         public createDrawnSurface(): void {
-            console.log("drawing surface");
             this.clearSurfaces();
             this.removeBodies();
             var that = this;
-            document.addEventListener("pointEditListener", function () {
+
+            // Create a point EditListener for the event
+            var listener = function (event: Event) {
+                //that.removeBodies();
                 that.clearSurfaces();
-                var points = <Array<PolygonSubdivision.Point>> event.recordset;
+                var points = <Array<PolygonSubdivision.Point>> (<any>event).detail;
                 that.setSurfacePoints(points);
-            });
+            }
+            document.addEventListener("pointEditListener", listener);
             inEditMode = true;
             curveControl.drawLine();
         }
 
         public createBezierSurface(): void {
-            
-            this.clearSurfaces();
             this.removeBodies();
+            this.clearSurfaces();
+            
 
             var width = this.canvas.width;
             var height = this.canvas.height;
@@ -216,6 +225,11 @@ module SlopePhysics {
         public changeGravity(value: number): void {
             this.gravity = value * 10;
             world.SetGravity(new b2m.b2Vec2(0, this.gravity));
+        }
+
+        public lineSimplificaton(value: number): void {
+            this.clearSurfaces();
+            curveControl.setLineTolerance(value);
         }
 
 
