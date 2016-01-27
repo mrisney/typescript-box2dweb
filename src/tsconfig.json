@@ -1,0 +1,43 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "isolatedModules": false,
+        "jsx": "react",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "declaration": false,
+        "noImplicitAny": false,
+        "removeComments": true,
+        "noLib": false,
+        "preserveConstEnums": true,
+        "suppressImplicitAnyIndexErrors": true
+    },
+    "filesGlob": [
+        "**/*.ts",
+        "**/*.tsx",
+        "!node_modules/**"
+    ],
+    "compileOnSave": true,
+    "buildOnSave": false,
+    "files": [
+        "app.ts",
+        "scripts/typings/box2d/box2dweb.d.ts",
+        "scripts/typings/createjs/createjs-lib.d.ts",
+        "scripts/typings/createjs/createjs.d.ts",
+        "scripts/typings/createjs/easeljs.d.ts",
+        "scripts/typings/createjs/soundjs.d.ts",
+        "scripts/typings/curvecontrol.ts",
+        "scripts/typings/jquery/jquery.d.ts",
+        "scripts/typings/kinetic/kinetic.d.ts",
+        "scripts/typings/lib.es6.d.ts",
+        "scripts/typings/polygonsubdivision.ts",
+        "scripts/typings/preloadjs/preloadjs.d.ts",
+        "scripts/typings/signals/Signal.ts",
+        "scripts/typings/tweenjs/tweenjs.d.ts"
+    ],
+    "atom": {
+        "rewriteTsconfig": true
+    }
+}
