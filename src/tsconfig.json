@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es5",
+        "target": "ES5",
         "module": "commonjs",
         "moduleResolution": "node",
         "isolatedModules": false,
@@ -31,10 +31,8 @@
         "scripts/typings/curvecontrol.ts",
         "scripts/typings/jquery/jquery.d.ts",
         "scripts/typings/kinetic/kinetic.d.ts",
-        "scripts/typings/lib.es6.d.ts",
         "scripts/typings/polygonsubdivision.ts",
         "scripts/typings/preloadjs/preloadjs.d.ts",
-        "scripts/typings/signals/Signal.ts",
         "scripts/typings/tweenjs/tweenjs.d.ts"
     ],
     "atom": {

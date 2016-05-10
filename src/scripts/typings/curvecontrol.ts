@@ -1,27 +1,25 @@
-﻿/// <reference path="./kinetic/kinetic.d.ts" />
-/// <reference path="./polygonsubdivision.ts" />
+declare module Curves {﻿
 
-module Curves {
-    export var controlPointLayer: Kinetic.Layer;
-    export var controlLineLayer: Kinetic.Layer;
-    export var simplifiedPoints: Array<PolygonSubdivision.Point>;
-    export var kineticControlPoints: Array<Kinetic.Circle>;
-    export var stage: Kinetic.Stage;
-    export var lineTolerance: number;
-    export var drawPoints: Array<PolygonSubdivision.Point>;
+    let controlPointLayer: Kinetic.Layer;
+    let controlLineLayer: Kinetic.Layer;
+    let simplifiedPoints: Array<PolygonSubdivision.Point>;
+    let kineticControlPoints: Array<Kinetic.Circle>;
+    let stage: Kinetic.Stage;
+    let lineTolerance: number;
+    let drawPoints: Array<PolygonSubdivision.Point>;
 
-    export var subdivisionPoint: PolygonSubdivision.Point
-    export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
-    export var bezierCurve: PolygonSubdivision.BezierCurve;
-    export var polylineSimplify: PolygonSubdivision.PolylineSimplify
+    let subdivisionPoint: PolygonSubdivision.Point
+    let chaikinCurve: PolygonSubdivision.ChaikinCurve;
+    let bezierCurve: PolygonSubdivision.BezierCurve;
+    let polylineSimplify: PolygonSubdivision.PolylineSimplify
 
-    export var curveControl: Curves.CurveControl;
+    let curveControl: Curves.CurveControl;
 
-    export class CurveControl {
-        public curvePoints: Array<PolygonSubdivision.Point>;
-        public controlPoints: Array<PolygonSubdivision.Point>;
-        constructor(containerName: String, w: number, h: number) {
-            stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
+    class CurveControl {
+        curvePoints: Array<PolygonSubdivision.Point>;
+        controlPoints: Array<PolygonSubdivision.Point>;
+        constructor( w: number, h: number) 
+          /*  stage = new Kinetic.Stage({ container: containerName, width: w, height: h });
             controlPointLayer = new Kinetic.Layer();
             controlLineLayer = new Kinetic.Layer();
             simplifiedPoints = new Array<PolygonSubdivision.Point>();
@@ -35,8 +33,9 @@ module Curves {
             this.controlPoints = new Array<PolygonSubdivision.Point>();
             lineTolerance = 1.0;
             curveControl = this;
+            */
         }
-
+/*
         public getCurvePoints(): Array<PolygonSubdivision.Point> {
             return this.curvePoints;
         }
@@ -52,7 +51,7 @@ module Curves {
                 stroke: '#666',
                 fill: '#ddd',
                 strokeWidth: 2,
-                text: 'p1',
+
                 draggable: true
             });
 
@@ -268,8 +267,7 @@ module Curves {
 
             return points;
         }
-
+            */
     }
-
 
 }

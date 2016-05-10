@@ -1,54 +1,16 @@
-﻿/// <reference path="./scripts/typings/jquery/jquery.d.ts"/>
-/// <reference path="./scripts/typings/createjs/createjs-lib.d.ts"/>
-/// <reference path="./scripts/typings/createjs/createjs.d.ts"/>
-/// <reference path="./scripts/typings/createjs/easeljs.d.ts"/>
-/// <reference path="./scripts/typings/preloadjs/preloadjs.d.ts"/>
-/// <reference path="./scripts/typings/box2d/box2dweb.d.ts" />
-/// <reference path="./scripts/typings/kinetic/kinetic.d.ts" />
-
-
-/// <reference path="./scripts/typings/curvecontrol.ts" />
-/// <reference path="./scripts/typings/polygonsubdivision.ts" />
-
-declare var Slider;
-
+﻿
 window.addEventListener('load',() => {
     var canvas = <HTMLCanvasElement> document.getElementById('surface');
-    canvas.width = (document.documentElement.offsetWidth -150);
-    canvas.height = (document.documentElement.clientHeight - 150);
-
-    var slopePhysics = new SlopePhysics.Main(canvas);
-    var gravityRange = new Slider("#gravity-range");
-
-    gravityRange.on("slide", function (event) {
-        slopePhysics.changeGravity(event.value);
-    });
-
-    var lineSimplification = new Slider("#line-simplification");
-  
-    lineSimplification.on("slide", function (event) {
-        slopePhysics.lineSimplificaton(event.value);
-    });
-
-    // set up button events
-    //document.getElementById("btnReload").addEventListener("click", slopePhysics.createBall);
-    //document.getElementById("btnSettings").addEventListener("click", slopePhysics.settings);
-    //document.getElementById("btnDraw").addEventListener("click", slopePhysics.createDrawnSurface);
-    //document.getElementById("btnBezier").addEventListener("click", slopePhysics.createBezierSurface);
-
-
-    //document.getElementById("btnDraw").addEventListener("click", function () {
-    //slopePhysics.createSurfaces(true);
-    //     (<HTMLInputElement>document.getElementById("line-tolerance-range")).value = "0,0";
-    // });
-
+    var main = new Application.Main(canvas);
 })
 
-interface Slider {
+module Application {
 
-}
-
-module SlopePhysics {
+    import point =  PolygonSubdivision.Point;
+    import curveControl = Curves.CurveControl;
+    import chaikinCurve =  PolygonSubdivision.ChaikinCurve;
+    import polylineSimplify = PolygonSubdivision.PolylineSimplify;
+    import bezierCurve = PolygonSubdivision.BezierCurve;
 
     import b2c = Box2D.Common;
     import b2m = Box2D.Common.Math;
@@ -56,55 +18,32 @@ module SlopePhysics {
     import b2s = Box2D.Collision.Shapes;
     import b2j = Box2D.Dynamics.Joints;
 
+    let canvas: HTMLCanvasElement;
+    let stage: createjs.Stage;
+    let context: CanvasRenderingContext2D;
 
-    var canvas: HTMLCanvasElement;
-    var stage: createjs.Stage;
-    var context: CanvasRenderingContext2D;
+    let lineTolerance: number = 1.0;
+    let bodies: any[] = new Array();
+    let surfaces: any[] = new Array();
+    let surfacePoints: any[] = new Array();
 
-    var stageW: number;
-    var stageH: number;
-
-
-    export var curveControl: Curves.CurveControl;
-    export var subdivisionPoint: PolygonSubdivision.Point
-    export var chaikinCurve: PolygonSubdivision.ChaikinCurve;
-    export var polylineSimplify: PolygonSubdivision.PolylineSimplify;
-    export var bezierCurve: PolygonSubdivision.BezierCurve;
-
-    var lineTolerance: number = 1.0;
-    var bodies: any[] = new Array();
-    var surfaces: any[] = new Array();
-    var surfacePoints: any[] = new Array();
-
-
-    export var world: Box2D.Dynamics.b2World;
-    export var inEditMode: Boolean = false;
-    export var scale: number = 30;
-    export var step: number = 20;
-
+    let world: Box2D.Dynamics.b2World;
+    let inEditMode: Boolean = false;
+    let scale: number = 30;
+    let step: number = 20;
 
     export class Main {
         public gravity: number = 9.81;
-        public canvas: HTMLCanvasElement;
-
-        constructor(canvas: HTMLCanvasElement) {
-
-            this.canvas = canvas;
-            context = canvas.getContext("2d");
+        constructor(_canvas: HTMLCanvasElement) {
+            console.log("test");
+            canvas = _canvas;
+            context = _canvas.getContext("2d");
             stage = new createjs.Stage(canvas);
             createjs.Touch.enable(stage);
             stage.mouseEnabled = true;
-            stageW = canvas.width;
-            stageH = canvas.height;
-            polylineSimplify = new PolygonSubdivision.PolylineSimplify();
-            bezierCurve = new PolygonSubdivision.BezierCurve;
-
-            curveControl = new Curves.CurveControl('container', stageW, stageH);
 
             world = new b2d.b2World(new b2m.b2Vec2(0, this.gravity * 10), true);
-            //         stage.addEventListener('stagemousedown', this.createBall);
-            
-   
+
             createjs.Ticker.setFPS(60);
             createjs.Ticker.useRAF = true;
             createjs.Ticker.addEventListener('tick', this.tick);
@@ -112,23 +51,29 @@ module SlopePhysics {
             window.addEventListener("resize", this.onResizeHandler.bind(this), false);
             window.addEventListener("orientationchange", this.onResizeHandler.bind(this), false);
 
-            var reloadButton = <HTMLInputElement>document.getElementById("btnReload");
+            let reloadButton = <HTMLInputElement>document.getElementById("btnReload");
             reloadButton.addEventListener("click", this.createBall.bind(this), false);
 
-            var settingsButton = <HTMLInputElement>document.getElementById("btnSettings");
+            let settingsButton = <HTMLInputElement>document.getElementById("btnSettings");
             settingsButton.addEventListener("click", this.settings.bind(this), false);
 
-            var drawButton = <HTMLInputElement>document.getElementById("btnDraw");
+            let drawButton = <HTMLInputElement>document.getElementById("btnDraw");
             drawButton.addEventListener("click", this.createDrawnSurface.bind(this), false);
 
-            var bezierButton = <HTMLInputElement>document.getElementById("btnBezier");
+            let bezierButton = <HTMLInputElement>document.getElementById("btnBezier");
             bezierButton.addEventListener("click", this.createBezierSurface.bind(this), false);
+
+
+            let lineSimplificationUI =  <HTMLInputElement>document.getElementById("line-simplification");
+            lineSimplificationUI.addEventListener("change", this.lineSimplificaton.bind(this),false);
+
+
 
         }
         public settings(): void {
 
             if (!inEditMode) {
-                curveControl.renderControlPoints();
+                //curveControl.renderControlPoints();
             }
 
             inEditMode = !inEditMode;
@@ -148,67 +93,67 @@ module SlopePhysics {
             }
             document.addEventListener("pointEditListener", listener);
             inEditMode = true;
-            curveControl.drawLine();
+        //    curveControl.drawLine();
         }
 
         public createBezierSurface(): void {
             this.removeBodies();
             this.clearSurfaces();
-            
 
-            var width = this.canvas.width;
-            var height = this.canvas.height;
-           
-            
+
+            let width = canvas.width;
+            let height = canvas.height;
+
+
             // first point - flush with edge of canvas left side (0),  1/16 of the way from the top
-            var pt1x = 0;
-            var pt1y = Math.floor(height / 16);
+            let pt1x = 0;
+            let pt1y = Math.floor(height / 16);
 
-            // second point : x - 1/16 from canvas left side, y at the bottom 
-            var pt2x = Math.floor(width/16);
-            var pt2y = Math.floor(height);
+            // second point : x - 1/16 from canvas left side, y at the bottom
+            let pt2x = Math.floor(width/16);
+            let pt2y = Math.floor(height);
 
-            // third point : x -  1/16 from canvas left side, y at the bottom 
-            var pt3x = Math.floor(15 * (width / 16));
-            var pt3y = Math.floor(height);
+            // third point : x -  1/16 from canvas left side, y at the bottom
+            let pt3x = Math.floor(15 * (width / 16));
+            let pt3y = Math.floor(height);
 
-            // third point - flush to the from canvas right side, 1/16 from the bottom 
-            var pt4x = width;
-            var pt4y = Math.floor(height / 16);
+            // third point - flush to the from canvas right side, 1/16 from the bottom
+            let pt4x = width;
+            let pt4y = Math.floor(height / 16);
 
-           
-            var controlPts = new Array<PolygonSubdivision.Point>();
+
+            let controlPts = new Array<PolygonSubdivision.Point>();
             controlPts[0] = new PolygonSubdivision.Point(pt1x, pt1y);
             controlPts[1] = new PolygonSubdivision.Point(pt2x, pt2y);
             controlPts[2] = new PolygonSubdivision.Point(pt3x, pt3y);
             controlPts[3] = new PolygonSubdivision.Point(pt4x, pt4y);
 
-            var points = curveControl.drawBesizerCurve(controlPts);
-            this.setSurfacePoints(points);
+            //let points = curveControl.drawBesizerCurve(controlPts);
+            //this.setSurfacePoints(points);
         }
 
 
         public createFlatSurface(): void {
 
             // create surface defintion
-            var surfaceDef = new b2d.b2BodyDef();
+            let surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
-            surfaceDef.position.x = stageW / 2 / scale;
-            surfaceDef.position.y = stageH / scale;
+            surfaceDef.position.x = canvas.width / 2 / scale;
+            surfaceDef.position.y = canvas.height / scale;
             surfaceDef.userData = 'flat-surface';
 
             // create surface fixture defintion
-            var surfaceFixtureDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
+            let surfaceFixtureDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
             surfaceFixtureDef.density = 1;
             surfaceFixtureDef.friction = 0.5;
 
-            var shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
-            var width: number = stageW / scale;
-            var height: number = 20 / scale;
+            let shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
+            let width: number = canvas.width / scale;
+            let height: number = 20 / scale;
             shape.SetAsBox(width, height);
             surfaceFixtureDef.shape = shape;
 
-            var flatSurface = world.CreateBody(surfaceDef).CreateFixture(surfaceFixtureDef);
+            let flatSurface = world.CreateBody(surfaceDef).CreateFixture(surfaceFixtureDef);
             surfaces.push(flatSurface);
 
             console.log('surface created, width : ' + width + ', height : ' + height);
@@ -227,33 +172,38 @@ module SlopePhysics {
             world.SetGravity(new b2m.b2Vec2(0, this.gravity));
         }
 
-        public lineSimplificaton(value: number): void {
-            this.clearSurfaces();
-            curveControl.setLineTolerance(value);
+        public lineSimplificaton(n: any): void {
+
+
+
+          console.log("slider value ="+n.value);
+
+        //  console.log('line value = '+n);
+            //this.clearSurfaces();
+            //curveControl.setLineTolerance(value);
         }
 
 
 
         //createBall(event: createjs.MouseEvent): void {
         public createBall = (): void => {
-            console.log('curve control points = ' + curveControl.getCurvePoints().length);
+            //console.log('curve control points = ' + curveControl.getCurvePoints().length);
             //this.removeSurfaces();
             //this.createCurvedSurfaces(curveControl.getCurvePoints());
 
             //console.log('clicked at ' + event.stageX + ',' + event.stageY);
             this.removeBodies();
+            let x: number = 20;
+            let y: number = 0;
 
-            var x: number = 20;
-            var y: number = 0;
-
-            var bodyDef = new b2d.b2BodyDef();
+            let bodyDef = new b2d.b2BodyDef();
 
             bodyDef.type = b2d.b2Body.b2_dynamicBody;
             bodyDef.position.x = x / scale;
             bodyDef.position.y = y / scale;
             bodyDef.userData = 'ball';
 
-            var fixDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
+            let fixDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
             fixDef.userData = 'ball';
             fixDef.density = 0.5;
             fixDef.friction = 0.5;
@@ -261,7 +211,7 @@ module SlopePhysics {
             fixDef.shape = new b2s.b2CircleShape(30 / scale);
             fixDef.userData = 'ball';
 
-            var body = world.CreateBody(bodyDef);
+            let body = world.CreateBody(bodyDef);
             body.CreateFixture(fixDef);
 
             //body.SetAwake(true);
@@ -280,32 +230,32 @@ module SlopePhysics {
         public setSurfacePoints(points: Array<PolygonSubdivision.Point>): void {
 
             // create surface defintion
-            var surfaceDef = new b2d.b2BodyDef();
+            let surfaceDef = new b2d.b2BodyDef();
             surfaceDef.type = b2d.b2Body.b2_staticBody;
             surfaceDef.userData = 'curved-surface'
 
             // create surface fixture defintion
-            var surfaceFixtureDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
+            let surfaceFixtureDef: b2d.b2FixtureDef = new b2d.b2FixtureDef();
             surfaceFixtureDef.density = 1;
             surfaceFixtureDef.friction = 0.5;
 
-            var shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
+            let shape: b2s.b2PolygonShape = new b2s.b2PolygonShape();
 
-            var ptArray = new Array();
-            var x1, y1, x2, y2;
+            let ptArray = new Array();
+            let x1, y1, x2, y2;
 
-            var curvedSurface = world.CreateBody(surfaceDef);
-            var ptOnCurve = points[0];
+            let curvedSurface = world.CreateBody(surfaceDef);
+            let ptOnCurve = points[0];
 
             x1 = this.p2m(ptOnCurve.x);
             y1 = this.p2m(ptOnCurve.y);
 
 
-            for (var i = 1; i < points.length; i++) {
-                var pt: PolygonSubdivision.Point = points[i];
+            for (let i = 1; i < points.length; i++) {
+                let pt: PolygonSubdivision.Point = points[i];
                 x2 = this.p2m(pt.x);
                 y2 = this.p2m(pt.y);
-                var edgeShape = new b2s.b2PolygonShape();
+                let edgeShape = new b2s.b2PolygonShape();
                 edgeShape.SetAsEdge(new b2m.b2Vec2(x1, y1), new b2m.b2Vec2(x2, y2));
                 curvedSurface.CreateFixture2(edgeShape);
                 x1 = x2;
@@ -325,16 +275,16 @@ module SlopePhysics {
             this.removeBodies();
             //this.removeSurfaces();
 
-            var width = (document.documentElement.offsetWidth - 25);
+            let width = (document.documentElement.offsetWidth - 25);
             var height = (document.documentElement.clientHeight - 150);
 
-  
+
             stage.canvas.width = width;
             stage.canvas.height = height;
-            curveControl = new Curves.CurveControl('container', width, height);
+            //curveControl = new Curves.CurveControl('container', width, height);
 
             stage.update();
-            
+
             //this.createSurfaces();
         }
 
